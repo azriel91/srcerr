@@ -6,7 +6,7 @@ pub struct SourceError<'path, 'source> {
     /// Source data that the erroneous value is found.
     pub invalid_source: SourceHighlighted<'path, 'source>,
     /// Suggestion or hint to provide to the user.
-    pub suggestion: Option<Suggestion<'source>>,
+    pub suggestion: Option<Suggestion<'path, 'source>>,
     /// Whether this is a denied error or warning.
     pub severity: Severity,
 }
