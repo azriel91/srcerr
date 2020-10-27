@@ -5,8 +5,8 @@ use crate::{Severity, SourceHighlighted, Suggestion};
 pub struct SourceError<'path, 'source> {
     /// Source data that the erroneous value is found.
     pub invalid_source: SourceHighlighted<'path, 'source>,
-    /// Suggestion or hint to provide to the user.
-    pub suggestion: Option<Suggestion<'path, 'source>>,
+    /// Suggestions or hints to provide to the user.
+    pub suggestions: Vec<Suggestion<'path, 'source>>,
     /// Whether this is a denied error or warning.
     pub severity: Severity,
 }
