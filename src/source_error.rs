@@ -1,16 +1,12 @@
-use std::path::Path;
-
-use crate::{Expr, Severity, Suggestion};
+use crate::{Severity, SourceHighlighted, Suggestion};
 
 /// Information about an error from source data.
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub struct SourceError<'path, 'source> {
-    /// Path to the source that the source data comes from.
-    pub path: &'path Path,
-    /// Expression that this error is for.
-    pub expr: Expr<'source>,
-    /// Suggestion or hint to provide to the user.
-    pub suggestion: Option<Suggestion<'source>>,
+    /// Source data that the erroneous value is found.
+    pub invalid_source: SourceHighlighted<'path, 'source>,
+    /// Suggestions or hints to provide to the user.
+    pub suggestions: Vec<Suggestion<'path, 'source>>,
     /// Whether this is a denied error or warning.
     pub severity: Severity,
 }

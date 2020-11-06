@@ -1,12 +1,16 @@
-use crate::Span;
+use std::borrow::Cow;
+
+use crate::{Expr, Span};
 
 /// Line number and full line containing an expression.
-#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+#[derive(Clone, Debug, PartialEq, Eq)]
 pub struct ExprContext<'source> {
-    /// Start (inclusive) and end (exclusive) positions of the line in the source data.
-    pub span_source: Span,
-    /// Line number of the line within the source.
+    /// Location of the expression context in the source data.
+    pub span: Span,
+    /// Line number of the context within the source.
     pub line_number: usize,
     /// Full line containing the expression.
-    pub line: &'source str,
+    pub line: Cow<'source, str>,
+    /// Actual token or value of interest within this context.
+    pub expr: Expr<'source>,
 }
