@@ -3,7 +3,8 @@
 //! User friendly errors from source data.
 
 pub use self::model::{
-    Expr, ExprContext, Severity, SourceError, SourceHighlighted, SourceRefHint, Span, Suggestion,
+    ErrorCode, Expr, ExprContext, Severity, SourceError, SourceHighlighted, SourceRefHint, Span,
+    Suggestion,
 };
 
 pub mod model;
