@@ -6,10 +6,18 @@ use std::io;
 /// all of its errors.
 pub trait ErrorCode {
     /// Returns the error code.
-    fn code(&self) -> u32;
+    fn code(&self) -> usize;
 
     /// Returns a short description of the error.
-    fn description<W>(&self, buffer: &mut W) -> Result<(), io::Error>
+    fn description(&self) -> String {
+        let mut buffer = Vec::new();
+        self.fmt_description(&mut buffer)
+            .expect("Failed to format error description.");
+        String::from_utf8(buffer).expect("Error description is not valid UTF8.")
+    }
+
+    /// Returns a short description of the error.
+    fn fmt_description<W>(&self, buffer: &mut W) -> Result<(), io::Error>
     where
         W: io::Write;
 
@@ -24,5 +32,5 @@ pub trait ErrorCode {
     ///
     /// This is used to determine the number of leading `0`s when formatting the
     /// error message.
-    fn error_count() -> u32;
+    fn error_count() -> usize;
 }

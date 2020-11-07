@@ -2,9 +2,13 @@
 
 //! User friendly errors from source data.
 
-pub use self::model::{
-    ErrorCode, Expr, ExprContext, Severity, SourceError, SourceHighlighted, SourceRefHint, Span,
-    Suggestion,
+pub use crate::{
+    formatter::PlainTextFormatter,
+    model::{
+        ErrorCode, Expr, ExprContext, Severity, SourceError, SourceHighlighted, SourceRefHint,
+        Span, Suggestion,
+    },
 };
 
+pub mod formatter;
 pub mod model;

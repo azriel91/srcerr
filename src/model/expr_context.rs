@@ -9,8 +9,10 @@ pub struct ExprContext<'source> {
     pub span: Span,
     /// Line number of the context within the source.
     pub line_number: usize,
-    /// Full line containing the expression.
-    pub line: Cow<'source, str>,
+    /// Column number of the context within the source.
+    pub col_number: usize,
+    /// Value of the expression context.
+    pub value: Cow<'source, str>,
     /// Actual token or value of interest within this context.
     pub expr: Expr<'source>,
 }
