@@ -8,22 +8,35 @@ use srcerr::{
 const SIMPLE_TOML: &str = include_str!("simple.toml");
 
 fn main() {
+    // Path to file containing error.
+    let path = Path::new("examples/simple.toml");
+    // Content from the file.
+    let content = SIMPLE_TOML;
+
+    let source_error = value_out_of_range(&path, content);
+
+    println!("{}", PlainTextFormatter::fmt(&source_error));
+}
+
+fn value_out_of_range<'path, 'source>(
+    path: &'path Path,
+    content: &'source str,
+) -> SourceError<'path, 'source, SimpleErrorCode<'source>> {
     let error_code = SimpleErrorCode::ValueOutOfRange {
         value: -5,
         range: -3..6,
     };
-    let path = Path::new("examples/simple.toml");
     let expr = Expr {
         span: Span { start: 21, end: 23 },
         line_number: 2,
         col_number: 13,
-        value: Cow::Borrowed(&SIMPLE_TOML[21..23]),
+        value: Cow::Borrowed(&content[21..23]),
     };
     let expr_context = ExprContext {
         span: Span { start: 9, end: 23 },
         line_number: 2,
         col_number: 1,
-        value: Cow::Borrowed(&SIMPLE_TOML[9..23]),
+        value: Cow::Borrowed(&content[9..23]),
         expr,
     };
     let invalid_source = SourceHighlighted {
@@ -33,14 +46,12 @@ fn main() {
     let suggestions = vec![];
     let severity = Severity::Deny;
 
-    let source_error = SourceError {
+    SourceError {
         error_code,
         invalid_source,
         suggestions,
         severity,
-    };
-
-    println!("{}", PlainTextFormatter::fmt(&source_error));
+    }
 }
 
 /// Error codes for simple example.
