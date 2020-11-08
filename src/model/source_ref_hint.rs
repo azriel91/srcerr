@@ -7,4 +7,12 @@ pub struct SourceRefHint<'path, 'source> {
     pub source_ref: SourceHighlighted<'path, 'source>,
     /// Whether this is a denied error or warning.
     pub severity: Severity,
+    /// Description that accompanies the highlighted source.
+    ///
+    /// This is printed alongside the error in the following format:
+    ///
+    /// ```rust,ignore
+    /// "help: {description}:"
+    /// ```
+    pub description: String,
 }

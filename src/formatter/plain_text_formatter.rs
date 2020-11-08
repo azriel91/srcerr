@@ -1,6 +1,9 @@
-use std::io::{self, Write};
+use std::{
+    borrow::Cow,
+    io::{self, Write},
+};
 
-use crate::{ErrorCode, Severity, SourceError};
+use crate::{ErrorCode, Severity, SourceError, SourceHighlighted, SourceRefHint, Suggestion};
 
 /// Formats a [`SourceError`] as plain text.
 #[derive(Debug)]
@@ -26,11 +29,13 @@ impl PlainTextFormatter {
         W: Write,
         E: ErrorCode,
     {
+        let expr_context = &source_error.invalid_source.expr_context;
+        let line_number_digits = Self::digits(expr_context.line_number);
+
         Self::fmt_error_code(buffer, source_error)?;
         Self::fmt_path(buffer, source_error)?;
-        Self::fmt_error_expr(buffer, source_error)?;
-
-        // TODO: suggestions
+        Self::fmt_error_expr(buffer, source_error, line_number_digits)?;
+        Self::fmt_suggestions(buffer, source_error, line_number_digits)?;
 
         Ok(())
     }
@@ -73,7 +78,7 @@ impl PlainTextFormatter {
     {
         let invalid_source = &source_error.invalid_source;
         if let Some(path) = invalid_source.path.as_ref() {
-            let expr = &invalid_source.expr_context.expr;
+            let expr = &invalid_source.expr;
 
             writeln!(
                 buffer,
@@ -90,24 +95,129 @@ impl PlainTextFormatter {
     fn fmt_error_expr<'f, 'path, 'source, W, E>(
         buffer: &mut W,
         source_error: &'f SourceError<'path, 'source, E>,
+        line_number_digits: usize,
     ) -> Result<(), io::Error>
     where
         W: Write,
         E: ErrorCode,
     {
-        let expr_context = &source_error.invalid_source.expr_context;
-        let expr = &expr_context.expr;
-        let digits = Self::digits(expr_context.line_number);
+        Self::fmt_source_highlighted(buffer, &source_error.invalid_source, line_number_digits)
+    }
+
+    fn fmt_suggestions<'f, 'path, 'source, W, E>(
+        buffer: &mut W,
+        source_error: &'f SourceError<'path, 'source, E>,
+        line_number_digits: usize,
+    ) -> Result<(), io::Error>
+    where
+        W: Write,
+        E: ErrorCode,
+    {
+        source_error
+            .suggestions
+            .iter()
+            .try_for_each(|suggestion| match suggestion {
+                Suggestion::ValidExprs(valid_exprs) => {
+                    Self::fmt_suggestion_valid_expr(buffer, valid_exprs, line_number_digits)
+                }
+                Suggestion::SourceRefHint(_source_ref_hint) => {
+                    Self::fmt_suggestion_source_ref_hint(
+                        buffer,
+                        _source_ref_hint,
+                        line_number_digits,
+                    )
+                }
+                Suggestion::Hint(_hint) => Ok(()),
+            })?;
+
+        Ok(())
+    }
+
+    fn fmt_suggestion_valid_expr<'f, 'path, 'source, W>(
+        buffer: &mut W,
+        valid_exprs: &[Cow<'source, str>],
+        line_number_digits: usize,
+    ) -> Result<(), io::Error>
+    where
+        W: Write,
+    {
+        write!(
+            buffer,
+            " {space:^width$} = note: expected one of: ",
+            space = " ",
+            width = line_number_digits
+        )?;
+
+        let mut valid_exprs = valid_exprs.iter();
+        if let Some(first_valid_expr) = valid_exprs.next() {
+            write!(buffer, "`{}`", first_valid_expr)?;
+        }
+        valid_exprs.try_for_each(|valid_expr| write!(buffer, ", `{}`", valid_expr))?;
+        writeln!(buffer)?;
+
+        Ok(())
+    }
+
+    /// Formats a suggestion that references a source file.
+    ///
+    /// Example output:
+    ///
+    /// ```rust,ignore
+    /// help: `chosen` value must come from one of `available` values:
+    ///  --> src/dynamic_value.yaml:1:1
+    ///   |
+    /// 1 | available:
+    /// 2 |  - abc
+    /// 3 |  - def
+    ///   |
+    ///   = hint: first defined here
+    /// ```
+    fn fmt_suggestion_source_ref_hint<'f, 'path, 'source, W>(
+        buffer: &mut W,
+        source_ref_hint: &SourceRefHint<'path, 'source>,
+        line_number_digits: usize,
+    ) -> Result<(), io::Error>
+    where
+        W: Write,
+    {
+        writeln!(buffer)?;
+        writeln!(
+            buffer,
+            "help: {description}",
+            description = source_ref_hint.description
+        )?;
+        Self::fmt_source_highlighted(buffer, &source_ref_hint.source_ref, line_number_digits)?;
+
+        writeln!(buffer)?;
+
+        Ok(())
+    }
+
+    fn fmt_source_highlighted<'f, 'path, 'source, W>(
+        buffer: &mut W,
+        source_highlighted: &'f SourceHighlighted<'path, 'source>,
+        line_number_digits: usize,
+    ) -> Result<(), io::Error>
+    where
+        W: Write,
+    {
+        let expr_context = &source_highlighted.expr_context;
+        let expr = &source_highlighted.expr;
 
         // Leading empty line.
-        writeln!(buffer, " {space:^width$} |", space = " ", width = digits)?;
+        writeln!(
+            buffer,
+            " {space:^width$} |",
+            space = " ",
+            width = line_number_digits
+        )?;
 
         // Expression in context.
         writeln!(
             buffer,
             " {line_number:^width$} | {expr_context}",
             line_number = expr_context.line_number,
-            width = digits,
+            width = line_number_digits,
             expr_context = expr_context.value,
         )?;
 
@@ -119,7 +229,7 @@ impl PlainTextFormatter {
             buffer,
             " {space:^width$} | {marker:>pad$}",
             space = " ",
-            width = digits,
+            width = line_number_digits,
             marker = marker,
             pad = expr.col_number - expr_context.col_number + expr_char_count,
         )?;

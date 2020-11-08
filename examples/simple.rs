@@ -1,8 +1,7 @@
 use std::{borrow::Cow, io, ops::RangeInclusive, path::Path};
 
 use srcerr::{
-    ErrorCode, Expr, ExprContext, PlainTextFormatter, Severity, SourceError, SourceHighlighted,
-    Span,
+    ErrorCode, Expr, PlainTextFormatter, Severity, SourceError, SourceHighlighted, Span, Suggestion,
 };
 
 const SIMPLE_TOML: &str = include_str!("simple.toml");
@@ -25,25 +24,33 @@ fn value_out_of_range<'path, 'source>(
     content: &'source str,
 ) -> SourceError<'path, 'source, SimpleErrorCode<'source>> {
     let range = 1..=3;
-    let error_code = SimpleErrorCode::ValueOutOfRange { value: -1, range };
+    let error_code = SimpleErrorCode::ValueOutOfRange {
+        value: -1,
+        range: range.clone(),
+    };
     let expr = Expr {
         span: Span { start: 21, end: 23 },
         line_number: 2,
         col_number: 13,
         value: Cow::Borrowed(&content[21..23]),
     };
-    let expr_context = ExprContext {
+    let expr_context = Expr {
         span: Span { start: 9, end: 23 },
         line_number: 2,
         col_number: 1,
         value: Cow::Borrowed(&content[9..23]),
-        expr,
     };
     let invalid_source = SourceHighlighted {
         path: Some(Cow::Borrowed(path)),
         expr_context,
+        expr,
     };
-    let suggestions = vec![];
+    let valid_exprs = range
+        .map(|n| n.to_string())
+        .map(Cow::Owned)
+        .collect::<Vec<_>>();
+    let suggestion_0 = Suggestion::ValidExprs(valid_exprs);
+    let suggestions = vec![suggestion_0];
     let severity = Severity::Deny;
 
     SourceError {
@@ -68,16 +75,16 @@ fn string_too_long<'path, 'source>(
         col_number: 16,
         value: Cow::Borrowed(&content[39..48]),
     };
-    let expr_context = ExprContext {
+    let expr_context = Expr {
         span: Span { start: 24, end: 48 },
         line_number: 3,
         col_number: 1,
         value: Cow::Borrowed(&content[24..48]),
-        expr,
     };
     let invalid_source = SourceHighlighted {
         path: Some(Cow::Borrowed(path)),
         expr_context,
+        expr,
     };
     let suggestions = vec![];
     let severity = Severity::Deny;
