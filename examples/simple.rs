@@ -63,6 +63,9 @@ pub enum SimpleErrorCode<'source> {
 }
 
 impl<'source> ErrorCode for SimpleErrorCode<'source> {
+    const ERROR_CODE_MAX: usize = 2;
+    const PREFIX: &'static str = "E";
+
     fn code(&self) -> usize {
         match self {
             Self::ValueOutOfRange { .. } => 1,
@@ -78,9 +81,5 @@ impl<'source> ErrorCode for SimpleErrorCode<'source> {
             Self::ValueOutOfRange { value, .. } => write!(buffer, "`{}` is out of range.", value),
             Self::StringTooLong { value, .. } => write!(buffer, "`{}` is too long.", value),
         }
-    }
-
-    fn error_count() -> usize {
-        2
     }
 }

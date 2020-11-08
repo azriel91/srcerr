@@ -48,12 +48,12 @@ impl PlainTextFormatter {
             Severity::Warn => write!(buffer, "warn")?,
         }
 
-        let digits = Self::digits(E::error_count());
+        let digits = Self::digits(E::ERROR_CODE_MAX);
         let error_code = &source_error.error_code;
         write!(
             buffer,
-            "[{prefix}{code:0^width$}]: ",
-            prefix = E::prefix(),
+            "[{prefix}{code:0>width$}]: ",
+            prefix = E::PREFIX,
             code = error_code.code(),
             width = digits
         )?;
