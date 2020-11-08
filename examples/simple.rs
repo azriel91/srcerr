@@ -13,9 +13,11 @@ fn main() {
     // Content from the file.
     let content = SIMPLE_TOML;
 
-    let source_error = value_out_of_range(&path, content);
+    let value_out_of_range = value_out_of_range(&path, content);
+    let string_too_long = string_too_long(&path, content);
 
-    println!("{}", PlainTextFormatter::fmt(&source_error));
+    println!("{}", PlainTextFormatter::fmt(&value_out_of_range));
+    println!("{}", PlainTextFormatter::fmt(&string_too_long));
 }
 
 fn value_out_of_range<'path, 'source>(
@@ -37,6 +39,42 @@ fn value_out_of_range<'path, 'source>(
         line_number: 2,
         col_number: 1,
         value: Cow::Borrowed(&content[9..23]),
+        expr,
+    };
+    let invalid_source = SourceHighlighted {
+        path: Some(Cow::Borrowed(path)),
+        expr_context,
+    };
+    let suggestions = vec![];
+    let severity = Severity::Deny;
+
+    SourceError {
+        error_code,
+        invalid_source,
+        suggestions,
+        severity,
+    }
+}
+
+fn string_too_long<'path, 'source>(
+    path: &'path Path,
+    content: &'source str,
+) -> SourceError<'path, 'source, SimpleErrorCode<'source>> {
+    let error_code = SimpleErrorCode::StringTooLong {
+        value: &content[40..47],
+        limit: 5,
+    };
+    let expr = Expr {
+        span: Span { start: 39, end: 48 },
+        line_number: 3,
+        col_number: 16,
+        value: Cow::Borrowed(&content[39..48]),
+    };
+    let expr_context = ExprContext {
+        span: Span { start: 24, end: 48 },
+        line_number: 3,
+        col_number: 1,
+        value: Cow::Borrowed(&content[24..48]),
         expr,
     };
     let invalid_source = SourceHighlighted {
