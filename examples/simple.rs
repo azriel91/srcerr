@@ -1,4 +1,4 @@
-use std::{borrow::Cow, io, ops::Range, path::Path};
+use std::{borrow::Cow, io, ops::RangeInclusive, path::Path};
 
 use srcerr::{
     ErrorCode, Expr, ExprContext, PlainTextFormatter, Severity, SourceError, SourceHighlighted,
@@ -24,10 +24,8 @@ fn value_out_of_range<'path, 'source>(
     path: &'path Path,
     content: &'source str,
 ) -> SourceError<'path, 'source, SimpleErrorCode<'source>> {
-    let error_code = SimpleErrorCode::ValueOutOfRange {
-        value: -5,
-        range: -3..6,
-    };
+    let range = 1..=3;
+    let error_code = SimpleErrorCode::ValueOutOfRange { value: -1, range };
     let expr = Expr {
         span: Span { start: 21, end: 23 },
         line_number: 2,
@@ -100,7 +98,7 @@ pub enum SimpleErrorCode<'source> {
         /// The value.
         value: i32,
         /// Range that the value must be within.
-        range: Range<i32>,
+        range: RangeInclusive<u32>,
     },
     /// Error when a string is too long.
     StringTooLong {
@@ -127,8 +125,16 @@ impl<'source> ErrorCode for SimpleErrorCode<'source> {
         W: io::Write,
     {
         match self {
-            Self::ValueOutOfRange { value, .. } => write!(buffer, "`{}` is out of range.", value),
-            Self::StringTooLong { value, .. } => write!(buffer, "`{}` is too long.", value),
+            Self::ValueOutOfRange { value, range } => write!(
+                buffer,
+                "`{}` is out of the range: `{}..{}`.",
+                value,
+                range.start(),
+                range.end()
+            ),
+            Self::StringTooLong { value, limit } => {
+                write!(buffer, "`{}` exceeds the {} character limit.", value, limit)
+            }
         }
     }
 }
