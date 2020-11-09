@@ -78,14 +78,19 @@ impl PlainTextFormatter {
     {
         let invalid_source = &source_error.invalid_source;
         if let Some(path) = invalid_source.path.as_ref() {
-            let expr = &invalid_source.expr;
+            let (line_number, col_number) = if let Some(expr) = &invalid_source.expr {
+                (expr.line_number, expr.col_number)
+            } else {
+                let expr_context = &invalid_source.expr_context;
+                (expr_context.line_number, expr_context.col_number)
+            };
 
             writeln!(
                 buffer,
                 " --> {path}:{line}:{col}",
                 path = path.display(),
-                line = expr.line_number,
-                col = expr.col_number,
+                line = line_number,
+                col = col_number,
             )?;
         }
 
@@ -221,18 +226,27 @@ impl PlainTextFormatter {
             expr_context = expr_context.value,
         )?;
 
-        let expr_char_count = expr.value.chars().count();
-        let marker = "^".repeat(expr_char_count);
+        if let Some(expr) = expr {
+            let expr_char_count = expr.value.chars().count();
+            let marker = "^".repeat(expr_char_count);
 
-        // Highlight the expression.
-        writeln!(
-            buffer,
-            " {space:^width$} | {marker:>pad$}",
-            space = " ",
-            width = line_number_digits,
-            marker = marker,
-            pad = expr.col_number - expr_context.col_number + expr_char_count,
-        )?;
+            // Highlight the expression.
+            writeln!(
+                buffer,
+                " {space:^width$} | {marker:>pad$}",
+                space = " ",
+                width = line_number_digits,
+                marker = marker,
+                pad = expr.col_number - expr_context.col_number + expr_char_count,
+            )?;
+        } else {
+            writeln!(
+                buffer,
+                " {space:^width$} |",
+                space = " ",
+                width = line_number_digits,
+            )?;
+        }
 
         Ok(())
     }

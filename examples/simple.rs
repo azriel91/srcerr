@@ -43,7 +43,7 @@ fn value_out_of_range<'path, 'source>(
     let invalid_source = SourceHighlighted {
         path: Some(Cow::Borrowed(path)),
         expr_context,
-        expr,
+        expr: Some(expr),
     };
     let valid_exprs = range
         .map(|n| n.to_string())
@@ -84,7 +84,7 @@ fn string_too_long<'path, 'source>(
     let invalid_source = SourceHighlighted {
         path: Some(Cow::Borrowed(path)),
         expr_context,
-        expr,
+        expr: Some(expr),
     };
     let suggestions = vec![];
     let severity = Severity::Deny;

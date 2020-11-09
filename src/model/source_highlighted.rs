@@ -13,5 +13,7 @@ pub struct SourceHighlighted<'path, 'source> {
     /// easier for a person to recognize where the value comes from.
     pub expr_context: Expr<'source>,
     /// Actual token or value of interest within this context.
-    pub expr: Expr<'source>,
+    ///
+    /// If the whole expression context is of interest, then this may be `None`.
+    pub expr: Option<Expr<'source>>,
 }
