@@ -260,3 +260,220 @@ impl PlainTextFormatter {
         (value_max as f32).log10().floor() as usize + 1
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use std::{borrow::Cow, io, ops::RangeInclusive, path::Path};
+
+    use crate::{ErrorCode, Expr, Severity, SourceError, SourceHighlighted, Span, Suggestion};
+
+    use super::PlainTextFormatter;
+
+    #[test]
+    fn formats_single_line_expr() {
+        let path = Path::new("plain_text_formatter/formats_single_line_expr.toml");
+        let content = "\
+            [simple]\n\
+            i32_value = -1\n\
+            ";
+        let value_out_of_range = value_out_of_range(&path, content);
+
+        let formatted_err = PlainTextFormatter::fmt(&value_out_of_range);
+
+        assert_eq!(
+            r#"error[E1]: `-1` is out of the range: `1..3`.
+ --> plain_text_formatter/formats_single_line_expr.toml:2:13
+   |
+ 2 | i32_value = -1
+   |             ^^
+   = note: expected one of: `1`, `2`, `3`
+"#,
+            formatted_err
+        );
+    }
+
+    #[test]
+    fn zero_pads_error_code_log_10_exact() {
+        let path = Path::new("plain_text_formatter/zero_pads_error_code_log_10_exact.toml");
+        let content = "\
+            [simple]\n\
+            i32_value = -1\n\
+            ";
+        let value_out_of_range = error_code_log_10_exact(&path, content);
+
+        let formatted_err = PlainTextFormatter::fmt(&value_out_of_range);
+
+        assert_eq!(
+            r#"error[E0091]: `-1` is out of range.
+ --> plain_text_formatter/zero_pads_error_code_log_10_exact.toml:2:13
+   |
+ 2 | i32_value = -1
+   |             ^^
+"#,
+            formatted_err
+        );
+    }
+
+    #[test]
+    fn zero_pads_error_code_log_10_inexact() {
+        let path = Path::new("plain_text_formatter/zero_pads_error_code_log_10_inexact.toml");
+        let content = "\
+            [simple]\n\
+            i32_value = -1\n\
+            ";
+        let value_out_of_range = error_code_log_10_inexact(&path, content);
+
+        let formatted_err = PlainTextFormatter::fmt(&value_out_of_range);
+
+        assert_eq!(
+            r#"error[E0091]: `-1` is out of range.
+ --> plain_text_formatter/zero_pads_error_code_log_10_inexact.toml:2:13
+   |
+ 2 | i32_value = -1
+   |             ^^
+"#,
+            formatted_err
+        );
+    }
+
+    fn value_out_of_range<'path, 'source>(
+        path: &'path Path,
+        content: &'source str,
+    ) -> SourceError<'path, 'source, ValueOutOfRange> {
+        let range = 1..=3;
+        let error_code = ValueOutOfRange {
+            value: -1,
+            range: range.clone(),
+        };
+        let valid_exprs = range
+            .map(|n| n.to_string())
+            .map(Cow::Owned)
+            .collect::<Vec<_>>();
+        let suggestion_0 = Suggestion::ValidExprs(valid_exprs);
+        let suggestions = vec![suggestion_0];
+
+        source_error(path, content, error_code, suggestions)
+    }
+
+    fn error_code_log_10_exact<'path, 'source>(
+        path: &'path Path,
+        content: &'source str,
+    ) -> SourceError<'path, 'source, ErrorCodeLog10Exact> {
+        let error_code = ErrorCodeLog10Exact { value: -1 };
+        source_error(path, content, error_code, vec![])
+    }
+
+    fn error_code_log_10_inexact<'path, 'source>(
+        path: &'path Path,
+        content: &'source str,
+    ) -> SourceError<'path, 'source, ErrorCodeLog10Inexact> {
+        let error_code = ErrorCodeLog10Inexact { value: -1 };
+        source_error(path, content, error_code, vec![])
+    }
+
+    fn source_error<'path, 'source, E>(
+        path: &'path Path,
+        content: &'source str,
+        error_code: E,
+        suggestions: Vec<Suggestion<'path, 'source>>,
+    ) -> SourceError<'path, 'source, E>
+    where
+        E: ErrorCode,
+    {
+        let expr = Expr {
+            span: Span { start: 21, end: 23 },
+            line_number: 2,
+            col_number: 13,
+            value: Cow::Borrowed(&content[21..23]),
+        };
+        let expr_context = Expr {
+            span: Span { start: 9, end: 23 },
+            line_number: 2,
+            col_number: 1,
+            value: Cow::Borrowed(&content[9..23]),
+        };
+        let invalid_source = SourceHighlighted {
+            path: Some(Cow::Borrowed(path)),
+            expr_context,
+            expr: Some(expr),
+        };
+        let severity = Severity::Deny;
+
+        SourceError {
+            error_code,
+            invalid_source,
+            suggestions,
+            severity,
+        }
+    }
+
+    #[derive(Debug)]
+    pub struct ValueOutOfRange {
+        value: i32,
+        range: RangeInclusive<u32>,
+    }
+
+    impl<'source> ErrorCode for ValueOutOfRange {
+        const ERROR_CODE_MAX: usize = 2;
+        const PREFIX: &'static str = "E";
+
+        fn code(&self) -> usize {
+            1
+        }
+
+        fn fmt_description<W>(&self, buffer: &mut W) -> Result<(), io::Error>
+        where
+            W: io::Write,
+        {
+            write!(
+                buffer,
+                "`{}` is out of the range: `{}..{}`.",
+                self.value,
+                self.range.start(),
+                self.range.end()
+            )
+        }
+    }
+
+    #[derive(Debug)]
+    pub struct ErrorCodeLog10Exact {
+        value: i32,
+    }
+
+    impl<'source> ErrorCode for ErrorCodeLog10Exact {
+        const ERROR_CODE_MAX: usize = 1000;
+        const PREFIX: &'static str = "E";
+
+        fn code(&self) -> usize {
+            91
+        }
+
+        fn fmt_description<W>(&self, buffer: &mut W) -> Result<(), io::Error>
+        where
+            W: io::Write,
+        {
+            write!(buffer, "`{}` is out of range.", self.value)
+        }
+    }
+
+    #[derive(Debug)]
+    pub struct ErrorCodeLog10Inexact {
+        value: i32,
+    }
+
+    impl<'source> ErrorCode for ErrorCodeLog10Inexact {
+        const ERROR_CODE_MAX: usize = 9999;
+        const PREFIX: &'static str = "E";
+
+        fn code(&self) -> usize {
+            91
+        }
+
+        fn fmt_description<W>(&self, buffer: &mut W) -> Result<(), io::Error>
+        where
+            W: io::Write,
+        {
+            write!(buffer, "`{}` is out of range.", self.value)
+        }
+    }
+}
