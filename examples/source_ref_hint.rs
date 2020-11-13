@@ -1,8 +1,8 @@
 use std::{borrow::Cow, io, path::Path};
 
 use srcerr::{
-    ErrorCode, Expr, PlainTextFormatter, Severity, SourceError, SourceHighlighted, SourceRefHint,
-    Span, Suggestion,
+    ErrorCode, Expr, ExprHighlighted, PlainTextFormatter, Severity, SourceError, SourceHighlighted,
+    SourceRefHint, Span, Suggestion,
 };
 
 const SOURCE_REF_HINT_YAML: &str = include_str!("source_ref_hint.yaml");
@@ -25,17 +25,23 @@ fn value_out_of_range<'path, 'source>(
     let error_code = SourceRefHintErrorCode::InvalidValue {
         value: &content[45..48],
     };
-    let expr = Expr {
-        span: Span { start: 44, end: 49 },
-        line_number: 6,
-        col_number: 9,
-        value: Cow::Borrowed(&content[44..49]),
+    let expr = {
+        let inner = Expr {
+            span: Span { start: 44, end: 49 },
+            line_number: 6,
+            col_number: 9,
+            value: Cow::Borrowed(&content[44..49]),
+        };
+        ExprHighlighted { inner, hint: None }
     };
-    let expr_context = Expr {
-        span: Span { start: 36, end: 49 },
-        line_number: 6,
-        col_number: 1,
-        value: Cow::Borrowed(&content[36..49]),
+    let expr_context = {
+        let inner = Expr {
+            span: Span { start: 36, end: 49 },
+            line_number: 6,
+            col_number: 1,
+            value: Cow::Borrowed(&content[36..49]),
+        };
+        ExprHighlighted { inner, hint: None }
     };
     let invalid_source = SourceHighlighted {
         path: Some(Cow::Borrowed(path)),
@@ -50,11 +56,14 @@ fn value_out_of_range<'path, 'source>(
         Suggestion::ValidExprs(valid_exprs)
     };
     let suggestion_1 = {
-        let expr_context = Expr {
-            span: Span { start: 4, end: 34 },
-            line_number: 2,
-            col_number: 1,
-            value: Cow::Borrowed(&content[4..34]),
+        let expr_context = {
+            let inner = Expr {
+                span: Span { start: 4, end: 34 },
+                line_number: 2,
+                col_number: 1,
+                value: Cow::Borrowed(&content[4..34]),
+            };
+            ExprHighlighted { inner, hint: None }
         };
         let source_ref = SourceHighlighted {
             path: Some(Cow::Borrowed(path)),

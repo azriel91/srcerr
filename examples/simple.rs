@@ -1,7 +1,8 @@
 use std::{borrow::Cow, io, ops::RangeInclusive, path::Path};
 
 use srcerr::{
-    ErrorCode, Expr, PlainTextFormatter, Severity, SourceError, SourceHighlighted, Span, Suggestion,
+    ErrorCode, Expr, ExprHighlighted, PlainTextFormatter, Severity, SourceError, SourceHighlighted,
+    Span, Suggestion,
 };
 
 const SIMPLE_TOML: &str = include_str!("simple.toml");
@@ -28,17 +29,23 @@ fn value_out_of_range<'path, 'source>(
         value: -1,
         range: range.clone(),
     };
-    let expr = Expr {
-        span: Span { start: 21, end: 23 },
-        line_number: 2,
-        col_number: 13,
-        value: Cow::Borrowed(&content[21..23]),
+    let expr = {
+        let inner = Expr {
+            span: Span { start: 21, end: 23 },
+            line_number: 2,
+            col_number: 13,
+            value: Cow::Borrowed(&content[21..23]),
+        };
+        ExprHighlighted { inner, hint: None }
     };
-    let expr_context = Expr {
-        span: Span { start: 9, end: 23 },
-        line_number: 2,
-        col_number: 1,
-        value: Cow::Borrowed(&content[9..23]),
+    let expr_context = {
+        let inner = Expr {
+            span: Span { start: 9, end: 23 },
+            line_number: 2,
+            col_number: 1,
+            value: Cow::Borrowed(&content[9..23]),
+        };
+        ExprHighlighted { inner, hint: None }
     };
     let invalid_source = SourceHighlighted {
         path: Some(Cow::Borrowed(path)),
@@ -69,17 +76,23 @@ fn string_too_long<'path, 'source>(
         value: &content[40..47],
         limit: 5,
     };
-    let expr = Expr {
-        span: Span { start: 39, end: 48 },
-        line_number: 3,
-        col_number: 16,
-        value: Cow::Borrowed(&content[39..48]),
+    let expr = {
+        let inner = Expr {
+            span: Span { start: 39, end: 48 },
+            line_number: 3,
+            col_number: 16,
+            value: Cow::Borrowed(&content[39..48]),
+        };
+        ExprHighlighted { inner, hint: None }
     };
-    let expr_context = Expr {
-        span: Span { start: 24, end: 48 },
-        line_number: 3,
-        col_number: 1,
-        value: Cow::Borrowed(&content[24..48]),
+    let expr_context = {
+        let inner = Expr {
+            span: Span { start: 24, end: 48 },
+            line_number: 3,
+            col_number: 1,
+            value: Cow::Borrowed(&content[24..48]),
+        };
+        ExprHighlighted { inner, hint: None }
     };
     let invalid_source = SourceHighlighted {
         path: Some(Cow::Borrowed(path)),
