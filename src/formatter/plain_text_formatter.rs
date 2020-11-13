@@ -33,7 +33,7 @@ impl PlainTextFormatter {
         let line_number_digits = Self::digits(expr_context.line_number);
 
         Self::fmt_error_code(buffer, source_error)?;
-        Self::fmt_path(buffer, source_error)?;
+        Self::fmt_path(buffer, &source_error.invalid_source)?;
         Self::fmt_error_expr(buffer, source_error, line_number_digits)?;
         Self::fmt_suggestions(buffer, source_error, line_number_digits)?;
 
@@ -68,20 +68,18 @@ impl PlainTextFormatter {
         Ok(())
     }
 
-    fn fmt_path<'f, 'path, 'source, W, E>(
+    fn fmt_path<'f, 'path, 'source, W>(
         buffer: &mut W,
-        source_error: &'f SourceError<'path, 'source, E>,
+        source_highlighted: &'f SourceHighlighted<'path, 'source>,
     ) -> Result<(), io::Error>
     where
         W: Write,
-        E: ErrorCode,
     {
-        let invalid_source = &source_error.invalid_source;
-        if let Some(path) = invalid_source.path.as_ref() {
-            let (line_number, col_number) = if let Some(expr) = &invalid_source.expr {
+        if let Some(path) = source_highlighted.path.as_ref() {
+            let (line_number, col_number) = if let Some(expr) = &source_highlighted.expr {
                 (expr.line_number, expr.col_number)
             } else {
-                let expr_context = &invalid_source.expr_context;
+                let expr_context = &source_highlighted.expr_context;
                 (expr_context.line_number, expr_context.col_number)
             };
 
@@ -125,14 +123,14 @@ impl PlainTextFormatter {
                 Suggestion::ValidExprs(valid_exprs) => {
                     Self::fmt_suggestion_valid_expr(buffer, valid_exprs, line_number_digits)
                 }
-                Suggestion::SourceRefHint(_source_ref_hint) => {
-                    Self::fmt_suggestion_source_ref_hint(
-                        buffer,
-                        _source_ref_hint,
-                        line_number_digits,
-                    )
+                Suggestion::SourceRefHint(source_ref_hint) => Self::fmt_suggestion_source_ref_hint(
+                    buffer,
+                    source_ref_hint,
+                    line_number_digits,
+                ),
+                Suggestion::Hint(hint) => {
+                    Self::fmt_suggestion_hint(buffer, hint, line_number_digits)
                 }
-                Suggestion::Hint(_hint) => Ok(()),
             })?;
 
         Ok(())
@@ -175,7 +173,6 @@ impl PlainTextFormatter {
     /// 2 |  - abc
     /// 3 |  - def
     ///   |
-    ///   = hint: first defined here
     /// ```
     fn fmt_suggestion_source_ref_hint<'f, 'path, 'source, W>(
         buffer: &mut W,
@@ -188,12 +185,37 @@ impl PlainTextFormatter {
         writeln!(buffer)?;
         writeln!(
             buffer,
-            "help: {description}",
+            "help: {description}:",
             description = source_ref_hint.description
         )?;
+        Self::fmt_path(buffer, &source_ref_hint.source_ref)?;
         Self::fmt_source_highlighted(buffer, &source_ref_hint.source_ref, line_number_digits)?;
 
-        writeln!(buffer)?;
+        Ok(())
+    }
+
+    /// Formats a string hint.
+    ///
+    /// Example output:
+    ///
+    /// ```rust,ignore
+    ///   = hint: first defined here
+    /// ```
+    fn fmt_suggestion_hint<'f, 'path, 'source, W>(
+        buffer: &mut W,
+        hint: &'source str,
+        line_number_digits: usize,
+    ) -> Result<(), io::Error>
+    where
+        W: Write,
+    {
+        writeln!(
+            buffer,
+            " {space:^width$} = hint: {hint}",
+            space = " ",
+            width = line_number_digits,
+            hint = hint,
+        )?;
 
         Ok(())
     }
@@ -271,7 +293,9 @@ impl PlainTextFormatter {
 mod tests {
     use std::{borrow::Cow, io, ops::RangeInclusive, path::Path};
 
-    use crate::{ErrorCode, Expr, Severity, SourceError, SourceHighlighted, Span, Suggestion};
+    use crate::{
+        ErrorCode, Expr, Severity, SourceError, SourceHighlighted, SourceRefHint, Span, Suggestion,
+    };
 
     use super::PlainTextFormatter;
 
@@ -366,6 +390,41 @@ mod tests {
         );
     }
 
+    #[test]
+    fn formats_multi_line_expr_context_both() {
+        let path = Path::new("plain_text_formatter/formats_multi_line_expr_context_both.yaml");
+        let content = r#"---
+available:
+- abc
+- def
+
+chosen: "ghi"
+"#;
+        let multi_line_expr_context_both_error = multi_line_expr_context_both_error(&path, content);
+
+        let formatted_err = PlainTextFormatter::fmt(&multi_line_expr_context_both_error);
+
+        assert_eq!(
+            r#"error[E100]: `chosen` value `ghi` is invalid.
+ --> plain_text_formatter/formats_multi_line_expr_context_both.yaml:6:9
+   |
+ 6 | chosen: "ghi"
+   |         ^^^^^
+   = note: expected one of: `abc`, `def`
+
+help: `chosen` value must come from one of `available` values:
+ --> plain_text_formatter/formats_multi_line_expr_context_both.yaml:2:1
+   |
+ 2 | available:
+ 3 | - abc
+ 4 | - def
+   |
+   = hint: first defined here
+"#,
+            formatted_err
+        );
+    }
+
     fn value_out_of_range<'path, 'source>(
         path: &'path Path,
         content: &'source str,
@@ -382,7 +441,14 @@ mod tests {
         let suggestion_0 = Suggestion::ValidExprs(valid_exprs);
         let suggestions = vec![suggestion_0];
 
-        source_error(path, content, error_code, expr_context_single, suggestions)
+        source_error(
+            path,
+            content,
+            error_code,
+            expr_toml_single,
+            expr_context_single,
+            suggestions,
+        )
     }
 
     fn error_code_log_10_exact<'path, 'source>(
@@ -390,7 +456,14 @@ mod tests {
         content: &'source str,
     ) -> SourceError<'path, 'source, ErrorCodeLog10Exact> {
         let error_code = ErrorCodeLog10Exact { value: -1 };
-        source_error(path, content, error_code, expr_context_single, vec![])
+        source_error(
+            path,
+            content,
+            error_code,
+            expr_toml_single,
+            expr_context_single,
+            vec![],
+        )
     }
 
     fn error_code_log_10_inexact<'path, 'source>(
@@ -398,7 +471,14 @@ mod tests {
         content: &'source str,
     ) -> SourceError<'path, 'source, ErrorCodeLog10Inexact> {
         let error_code = ErrorCodeLog10Inexact { value: -1 };
-        source_error(path, content, error_code, expr_context_single, vec![])
+        source_error(
+            path,
+            content,
+            error_code,
+            expr_toml_single,
+            expr_context_single,
+            vec![],
+        )
     }
 
     fn multi_line_expr_context_before_error<'path, 'source>(
@@ -409,25 +489,60 @@ mod tests {
             value: -1,
             range: 1..=3,
         };
-        source_error(path, content, error_code, expr_context_before, vec![])
+        source_error(
+            path,
+            content,
+            error_code,
+            expr_toml_single,
+            expr_context_before,
+            vec![],
+        )
+    }
+
+    fn multi_line_expr_context_both_error<'path, 'source>(
+        path: &'path Path,
+        content: &'source str,
+    ) -> SourceError<'path, 'source, ChosenInvalid<'source>> {
+        let suggestion_0 = Suggestion::ValidExprs(vec![
+            Cow::Borrowed(&content[17..20]),
+            Cow::Borrowed(&content[23..26]),
+        ]);
+        let suggestion_1 = Suggestion::SourceRefHint(SourceRefHint {
+            source_ref: SourceHighlighted {
+                path: Some(Cow::Borrowed(path)),
+                expr_context: expr_context_yaml_both(content),
+                expr: None,
+            },
+            description: String::from("`chosen` value must come from one of `available` values"),
+        });
+        let suggestion_2 = Suggestion::Hint("first defined here");
+        let suggestions = vec![suggestion_0, suggestion_1, suggestion_2];
+
+        let error_code = ChosenInvalid {
+            value: &content[37..40],
+        };
+        source_error(
+            path,
+            content,
+            error_code,
+            expr_yaml_single,
+            expr_context_yaml_single,
+            suggestions,
+        )
     }
 
     fn source_error<'path, 'source, E>(
         path: &'path Path,
         content: &'source str,
         error_code: E,
+        expr: fn(&'source str) -> Expr<'source>,
         expr_context: fn(&'source str) -> Expr<'source>,
         suggestions: Vec<Suggestion<'path, 'source>>,
     ) -> SourceError<'path, 'source, E>
     where
         E: ErrorCode,
     {
-        let expr = Expr {
-            span: Span { start: 21, end: 23 },
-            line_number: 2,
-            col_number: 13,
-            value: Cow::Borrowed(&content[21..23]),
-        };
+        let expr = expr(content);
         let expr_context = expr_context(content);
         let invalid_source = SourceHighlighted {
             path: Some(Cow::Borrowed(path)),
@@ -441,6 +556,24 @@ mod tests {
             invalid_source,
             suggestions,
             severity,
+        }
+    }
+
+    fn expr_toml_single<'source>(content: &'source str) -> Expr<'source> {
+        Expr {
+            span: Span { start: 21, end: 23 },
+            line_number: 2,
+            col_number: 13,
+            value: Cow::Borrowed(&content[21..23]),
+        }
+    }
+
+    fn expr_yaml_single<'source>(content: &'source str) -> Expr<'source> {
+        Expr {
+            span: Span { start: 36, end: 41 },
+            line_number: 6,
+            col_number: 9,
+            value: Cow::Borrowed(&content[36..41]),
         }
     }
 
@@ -459,6 +592,24 @@ mod tests {
             line_number: 2,
             col_number: 1,
             value: Cow::Borrowed(&content[9..23]),
+        }
+    }
+
+    fn expr_context_yaml_single<'source>(content: &'source str) -> Expr<'source> {
+        Expr {
+            span: Span { start: 28, end: 41 },
+            line_number: 6,
+            col_number: 1,
+            value: Cow::Borrowed(&content[28..41]),
+        }
+    }
+
+    fn expr_context_yaml_both<'source>(content: &'source str) -> Expr<'source> {
+        Expr {
+            span: Span { start: 4, end: 26 },
+            line_number: 2,
+            col_number: 1,
+            value: Cow::Borrowed(&content[4..26]),
         }
     }
 
@@ -529,6 +680,27 @@ mod tests {
             W: io::Write,
         {
             write!(buffer, "`{}` is out of range.", self.value)
+        }
+    }
+
+    #[derive(Debug)]
+    pub struct ChosenInvalid<'source> {
+        value: &'source str,
+    }
+
+    impl<'source> ErrorCode for ChosenInvalid<'source> {
+        const ERROR_CODE_MAX: usize = 300;
+        const PREFIX: &'static str = "E";
+
+        fn code(&self) -> usize {
+            100
+        }
+
+        fn fmt_description<W>(&self, buffer: &mut W) -> Result<(), io::Error>
+        where
+            W: io::Write,
+        {
+            write!(buffer, "`chosen` value `{}` is invalid.", self.value)
         }
     }
 }
