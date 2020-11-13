@@ -7,6 +7,9 @@ use crate::{
     ErrorCode, ExprHighlighted, Severity, SourceError, SourceHighlighted, SourceRefHint, Suggestion,
 };
 
+const DOTS_PREFIX: &str = ".. ";
+const DOTS_SUFFIX: &str = " ..";
+
 /// Formats a [`SourceError`] as plain text.
 #[derive(Debug)]
 pub struct PlainTextFormatter;
@@ -251,6 +254,7 @@ impl PlainTextFormatter {
         )?;
 
         // Expression context.
+        let is_partial_line = expr_context.inner.col_number > 1;
         let mut expr_context_lines = expr_context.inner.value.lines();
 
         // We need to render the marker when the expression line number is within the
@@ -258,33 +262,56 @@ impl PlainTextFormatter {
         if let Some(expr) = expr {
             // Note: It is up to the user to ensure that the `expr` is within
             // `expr_context`. If it is not, it wouldn't be printed.
-            let last_line_number = expr_context_lines.try_fold(
-                expr_context.inner.line_number,
-                |current_line_number, line| {
-                    writeln!(
+            let first_line_number = expr_context.inner.line_number;
+            let last_line_number =
+                expr_context_lines.try_fold(first_line_number, |current_line_number, line| {
+                    let surround_with_dots =
+                        current_line_number == first_line_number && is_partial_line;
+
+                    Self::fmt_expr_context(
                         buffer,
-                        " {line_number:^width$} | {expr_context}",
-                        line_number = current_line_number,
-                        width = line_number_digits,
-                        expr_context = line,
+                        line_number_digits,
+                        line,
+                        current_line_number,
+                        surround_with_dots,
                     )?;
 
                     if current_line_number == expr.inner.line_number {
+                        let column_offset = if is_partial_line {
+                            expr_context.inner.col_number - DOTS_PREFIX.len()
+                        } else {
+                            expr_context.inner.col_number
+                        };
+
                         Self::fmt_expr_highlighted(
                             buffer,
                             expr,
                             line_number_digits,
-                            expr_context.inner.col_number,
+                            column_offset,
                             marker,
                         )?;
+
+                        // When we have written the expression highlight markers, we want to write
+                        // column number hint when it is a partial line context.
+                        if is_partial_line {
+                            Self::fmt_expr_column_hint(
+                                buffer,
+                                line_number_digits,
+                                column_offset,
+                                expr.inner.col_number,
+                            )?;
+                        }
                     }
 
                     Result::<usize, io::Error>::Ok(current_line_number + 1)
-                },
-            )?;
+                })?;
 
-            // Write the last empty line if the expression marker is not on the last line.
-            if last_line_number != expr.inner.line_number + 1 {
+            // Write the last empty line in any of the following cases:
+            //
+            // * The expression marker is not on the last line.
+            // * We are rendering a partial context, and have written the column number hint
+            //   previously.
+            if last_line_number != expr.inner.line_number + 1 || is_partial_line {
                 writeln!(
                     buffer,
                     " {space:^width$} |",
@@ -293,17 +320,21 @@ impl PlainTextFormatter {
                 )?;
             }
         } else {
-            expr_context_lines
-                .enumerate()
-                .try_for_each(|(line_offset, line)| {
-                    writeln!(
-                        buffer,
-                        " {line_number:^width$} | {expr_context}",
-                        line_number = expr_context.inner.line_number + line_offset,
-                        width = line_number_digits,
-                        expr_context = line,
-                    )
-                })?;
+            let first_line_number = expr_context.inner.line_number;
+            expr_context_lines.try_fold(first_line_number, |current_line_number, line| {
+                let surround_with_dots =
+                    current_line_number == first_line_number && is_partial_line;
+
+                Self::fmt_expr_context(
+                    buffer,
+                    line_number_digits,
+                    line,
+                    current_line_number,
+                    surround_with_dots,
+                )?;
+
+                Result::<usize, io::Error>::Ok(current_line_number + 1)
+            })?;
 
             writeln!(
                 buffer,
@@ -316,11 +347,52 @@ impl PlainTextFormatter {
         Ok(())
     }
 
+    fn fmt_expr_context<'f, 'source, W>(
+        buffer: &mut W,
+        line_number_digits: usize,
+        line: &'source str,
+        current_line_number: usize,
+        surround_with_dots: bool,
+    ) -> Result<(), io::Error>
+    where
+        W: Write,
+    {
+        // Line numbers and margin
+        write!(
+            buffer,
+            " {line_number:^width$} | ",
+            line_number = current_line_number,
+            width = line_number_digits,
+        )?;
+
+        // Dots to indicate only part of the line is rendered.
+        if surround_with_dots {
+            write!(buffer, "{}", DOTS_PREFIX)?;
+        }
+
+        // The expression value.
+        write!(buffer, "{expr_context}", expr_context = line)?;
+
+        // Dots to indicate only part of the line is rendered.
+        //
+        // Notably at this point, we are not properly handling multi-line contexts with
+        // partial line rendering. That would require either the user telling us that
+        // the line is partial, or knowledge of the whole line that the expression
+        // context comes from.
+        if surround_with_dots {
+            write!(buffer, "{}", DOTS_SUFFIX)?;
+        }
+
+        writeln!(buffer)?;
+
+        Ok(())
+    }
+
     fn fmt_expr_highlighted<'f, 'source, W>(
         buffer: &mut W,
         expr: &'f ExprHighlighted<'source>,
         line_number_digits: usize,
-        context_col_number: usize,
+        context_col_offset: usize,
         marker: &str,
     ) -> Result<(), io::Error>
     where
@@ -336,7 +408,7 @@ impl PlainTextFormatter {
             space = " ",
             width = line_number_digits,
             marker = marker,
-            pad = expr.inner.col_number - context_col_number + expr_char_count,
+            pad = expr.inner.col_number - context_col_offset + expr_char_count,
         )?;
 
         if let Some(hint) = expr.hint.as_ref() {
@@ -344,6 +416,38 @@ impl PlainTextFormatter {
         }
 
         writeln!(buffer)?;
+
+        Ok(())
+    }
+
+    fn fmt_expr_column_hint<'f, 'source, W>(
+        buffer: &mut W,
+        line_number_digits: usize,
+        context_col_offset: usize,
+        expr_col_number: usize,
+    ) -> Result<(), io::Error>
+    where
+        W: Write,
+    {
+        // Arrow body
+        writeln!(
+            buffer,
+            " {space:^width$} | {space:>pad$}{arrow_body}",
+            space = " ",
+            width = line_number_digits,
+            pad = expr_col_number - context_col_offset,
+            arrow_body = "|",
+        )?;
+
+        // Column number
+        writeln!(
+            buffer,
+            " {space:^width$} | {space:>pad$}{col_number}",
+            space = " ",
+            width = line_number_digits,
+            pad = expr_col_number - context_col_offset,
+            col_number = expr_col_number,
+        )?;
 
         Ok(())
     }
@@ -530,6 +634,29 @@ help: `chosen` value must come from one of `available` values:
         );
     }
 
+    #[test]
+    fn formats_long_line_expr_context_expr() {
+        let path = Path::new("plain_text_formatter/formats_long_line_expr_context_expr.json");
+        let content = r#"{"a":0,"b":1,"c":2,"d":3,"e":4,"f":5,"g":6,"h":7,"i":8,"j":9,"k":10,"l":11,"m":12,"n":13,"o":14,"p":150,"q":16,"r":17,"s":18,"t":19,"u":20,"v":21,"w":22,"x":23,"y":24,"z":25}"#;
+        let long_line_expr_context_expr = long_line_expr_context_expr(&path, content);
+
+        let formatted_err = PlainTextFormatter::fmt(&long_line_expr_context_expr);
+
+        assert_eq!(
+            r#"error[E09]: Value `150` is invalid.
+  --> plain_text_formatter/formats_long_line_expr_context_expr.json:1:101
+   |
+ 1 | .. "p":150, ..
+   |        ^^^
+   |        |
+   |        101
+   |
+   = hint: expected value to be less than 26
+"#,
+            formatted_err
+        );
+    }
+
     fn value_out_of_range<'path, 'source>(
         path: &'path Path,
         content: &'source str,
@@ -670,6 +797,26 @@ help: `chosen` value must come from one of `available` values:
         )
     }
 
+    fn long_line_expr_context_expr<'path, 'source>(
+        path: &'path Path,
+        content: &'source str,
+    ) -> SourceError<'path, 'source, ValueInvalid<'source>> {
+        let suggestion_0 = Suggestion::Hint("expected value to be less than 26");
+        let suggestions = vec![suggestion_0];
+
+        let error_code = ValueInvalid {
+            value: &content[100..103],
+        };
+        source_error(
+            path,
+            content,
+            error_code,
+            expr_json_single,
+            expr_context_json_single,
+            suggestions,
+        )
+    }
+
     fn source_error<'path, 'source, E>(
         path: &'path Path,
         content: &'source str,
@@ -771,6 +918,32 @@ help: `chosen` value must come from one of `available` values:
         ExprHighlighted { inner, hint: None }
     }
 
+    fn expr_json_single<'source>(content: &'source str) -> ExprHighlighted<'source> {
+        let inner = Expr {
+            span: Span {
+                start: 100,
+                end: 103,
+            },
+            line_number: 1,
+            col_number: 101,
+            value: Cow::Borrowed(&content[100..103]),
+        };
+        ExprHighlighted { inner, hint: None }
+    }
+
+    fn expr_context_json_single<'source>(content: &'source str) -> ExprHighlighted<'source> {
+        let inner = Expr {
+            span: Span {
+                start: 96,
+                end: 104,
+            },
+            line_number: 1,
+            col_number: 97,
+            value: Cow::Borrowed(&content[96..104]),
+        };
+        ExprHighlighted { inner, hint: None }
+    }
+
     #[derive(Debug)]
     pub struct ValueOutOfRange {
         value: i32,
@@ -859,6 +1032,27 @@ help: `chosen` value must come from one of `available` values:
             W: io::Write,
         {
             write!(buffer, "`chosen` value `{}` is invalid.", self.value)
+        }
+    }
+
+    #[derive(Debug)]
+    pub struct ValueInvalid<'source> {
+        value: &'source str,
+    }
+
+    impl<'source> ErrorCode for ValueInvalid<'source> {
+        const ERROR_CODE_MAX: usize = 99;
+        const PREFIX: &'static str = "E";
+
+        fn code(&self) -> usize {
+            9
+        }
+
+        fn fmt_description<W>(&self, buffer: &mut W) -> Result<(), io::Error>
+        where
+            W: io::Write,
+        {
+            write!(buffer, "Value `{}` is invalid.", self.value)
         }
     }
 }
