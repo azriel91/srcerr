@@ -251,7 +251,7 @@ impl PlainTextFormatter {
         )?;
 
         // Expression context.
-        let mut expr_context_lines = expr_context.inner.value.lines().enumerate();
+        let mut expr_context_lines = expr_context.inner.value.lines();
 
         // We need to render the marker when the expression line number is within the
         // context.
@@ -260,8 +260,7 @@ impl PlainTextFormatter {
             // `expr_context`. If it is not, it wouldn't be printed.
             let last_line_number = expr_context_lines.try_fold(
                 expr_context.inner.line_number,
-                |_, (line_offset, line)| {
-                    let current_line_number = expr_context.inner.line_number + line_offset;
+                |current_line_number, line| {
                     writeln!(
                         buffer,
                         " {line_number:^width$} | {expr_context}",
@@ -280,12 +279,12 @@ impl PlainTextFormatter {
                         )?;
                     }
 
-                    Result::<usize, io::Error>::Ok(current_line_number)
+                    Result::<usize, io::Error>::Ok(current_line_number + 1)
                 },
             )?;
 
             // Write the last empty line if the expression marker is not on the last line.
-            if last_line_number != expr.inner.line_number {
+            if last_line_number != expr.inner.line_number + 1 {
                 writeln!(
                     buffer,
                     " {space:^width$} |",
@@ -294,15 +293,17 @@ impl PlainTextFormatter {
                 )?;
             }
         } else {
-            expr_context_lines.try_for_each(|(line_offset, line)| {
-                writeln!(
-                    buffer,
-                    " {line_number:^width$} | {expr_context}",
-                    line_number = expr_context.inner.line_number + line_offset,
-                    width = line_number_digits,
-                    expr_context = line,
-                )
-            })?;
+            expr_context_lines
+                .enumerate()
+                .try_for_each(|(line_offset, line)| {
+                    writeln!(
+                        buffer,
+                        " {line_number:^width$} | {expr_context}",
+                        line_number = expr_context.inner.line_number + line_offset,
+                        width = line_number_digits,
+                        expr_context = line,
+                    )
+                })?;
 
             writeln!(
                 buffer,
