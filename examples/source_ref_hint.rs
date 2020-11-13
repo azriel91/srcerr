@@ -66,7 +66,8 @@ fn value_out_of_range<'path, 'source>(
             description: String::from("`chosen` value must come from one of `available` values"),
         })
     };
-    let suggestions = vec![suggestion_0, suggestion_1];
+    let suggestion_2 = Suggestion::Hint("first defined here");
+    let suggestions = vec![suggestion_0, suggestion_1, suggestion_2];
     let severity = Severity::Deny;
 
     SourceError {
