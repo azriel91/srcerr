@@ -218,13 +218,19 @@ impl PlainTextFormatter {
         )?;
 
         // Expression in context.
-        writeln!(
-            buffer,
-            " {line_number:^width$} | {expr_context}",
-            line_number = expr_context.line_number,
-            width = line_number_digits,
-            expr_context = expr_context.value,
-        )?;
+        expr_context
+            .value
+            .lines()
+            .enumerate()
+            .try_for_each(|(line_offset, line)| {
+                writeln!(
+                    buffer,
+                    " {line_number:^width$} | {expr_context}",
+                    line_number = expr_context.line_number + line_offset,
+                    width = line_number_digits,
+                    expr_context = line,
+                )
+            })?;
 
         if let Some(expr) = expr {
             let expr_char_count = expr.value.chars().count();
@@ -336,6 +342,30 @@ mod tests {
         );
     }
 
+    #[test]
+    fn formats_multi_line_expr_context_before() {
+        let path = Path::new("plain_text_formatter/formats_multi_line_expr_context_before.toml");
+        let content = "\
+            [simple]\n\
+            i32_value = -1\n\
+            ";
+        let multi_line_expr_context_before_error =
+            multi_line_expr_context_before_error(&path, content);
+
+        let formatted_err = PlainTextFormatter::fmt(&multi_line_expr_context_before_error);
+
+        assert_eq!(
+            r#"error[E1]: `-1` is out of the range: `1..3`.
+ --> plain_text_formatter/formats_multi_line_expr_context_before.toml:2:13
+   |
+ 1 | [simple]
+ 2 | i32_value = -1
+   |             ^^
+"#,
+            formatted_err
+        );
+    }
+
     fn value_out_of_range<'path, 'source>(
         path: &'path Path,
         content: &'source str,
@@ -352,7 +382,7 @@ mod tests {
         let suggestion_0 = Suggestion::ValidExprs(valid_exprs);
         let suggestions = vec![suggestion_0];
 
-        source_error(path, content, error_code, suggestions)
+        source_error(path, content, error_code, expr_context_single, suggestions)
     }
 
     fn error_code_log_10_exact<'path, 'source>(
@@ -360,7 +390,7 @@ mod tests {
         content: &'source str,
     ) -> SourceError<'path, 'source, ErrorCodeLog10Exact> {
         let error_code = ErrorCodeLog10Exact { value: -1 };
-        source_error(path, content, error_code, vec![])
+        source_error(path, content, error_code, expr_context_single, vec![])
     }
 
     fn error_code_log_10_inexact<'path, 'source>(
@@ -368,13 +398,25 @@ mod tests {
         content: &'source str,
     ) -> SourceError<'path, 'source, ErrorCodeLog10Inexact> {
         let error_code = ErrorCodeLog10Inexact { value: -1 };
-        source_error(path, content, error_code, vec![])
+        source_error(path, content, error_code, expr_context_single, vec![])
+    }
+
+    fn multi_line_expr_context_before_error<'path, 'source>(
+        path: &'path Path,
+        content: &'source str,
+    ) -> SourceError<'path, 'source, ValueOutOfRange> {
+        let error_code = ValueOutOfRange {
+            value: -1,
+            range: 1..=3,
+        };
+        source_error(path, content, error_code, expr_context_before, vec![])
     }
 
     fn source_error<'path, 'source, E>(
         path: &'path Path,
         content: &'source str,
         error_code: E,
+        expr_context: fn(&'source str) -> Expr<'source>,
         suggestions: Vec<Suggestion<'path, 'source>>,
     ) -> SourceError<'path, 'source, E>
     where
@@ -386,12 +428,7 @@ mod tests {
             col_number: 13,
             value: Cow::Borrowed(&content[21..23]),
         };
-        let expr_context = Expr {
-            span: Span { start: 9, end: 23 },
-            line_number: 2,
-            col_number: 1,
-            value: Cow::Borrowed(&content[9..23]),
-        };
+        let expr_context = expr_context(content);
         let invalid_source = SourceHighlighted {
             path: Some(Cow::Borrowed(path)),
             expr_context,
@@ -404,6 +441,24 @@ mod tests {
             invalid_source,
             suggestions,
             severity,
+        }
+    }
+
+    fn expr_context_before<'source>(content: &'source str) -> Expr<'source> {
+        Expr {
+            span: Span { start: 0, end: 23 },
+            line_number: 1,
+            col_number: 1,
+            value: Cow::Borrowed(&content[0..23]),
+        }
+    }
+
+    fn expr_context_single<'source>(content: &'source str) -> Expr<'source> {
+        Expr {
+            span: Span { start: 9, end: 23 },
+            line_number: 2,
+            col_number: 1,
+            value: Cow::Borrowed(&content[9..23]),
         }
     }
 
