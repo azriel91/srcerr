@@ -146,7 +146,7 @@ impl PlainTextFormatter {
     {
         write!(
             buffer,
-            " {space:^width$} = note: expected one of: ",
+            "{space:^width$} = note: expected one of: ",
             space = " ",
             width = line_number_digits
         )?;
@@ -211,7 +211,7 @@ impl PlainTextFormatter {
     {
         writeln!(
             buffer,
-            " {space:^width$} = hint: {hint}",
+            "{space:^width$} = hint: {hint}",
             space = " ",
             width = line_number_digits,
             hint = hint,
@@ -234,7 +234,7 @@ impl PlainTextFormatter {
         // Leading empty line.
         writeln!(
             buffer,
-            " {space:^width$} |",
+            "{space:^width$} |",
             space = " ",
             width = line_number_digits
         )?;
@@ -247,7 +247,7 @@ impl PlainTextFormatter {
             .try_for_each(|(line_offset, line)| {
                 writeln!(
                     buffer,
-                    " {line_number:^width$} | {expr_context}",
+                    "{line_number:^width$} | {expr_context}",
                     line_number = expr_context.line_number + line_offset,
                     width = line_number_digits,
                     expr_context = line,
@@ -261,7 +261,7 @@ impl PlainTextFormatter {
             // Highlight the expression.
             writeln!(
                 buffer,
-                " {space:^width$} | {marker:>pad$}",
+                "{space:^width$} | {marker:>pad$}",
                 space = " ",
                 width = line_number_digits,
                 marker = marker,
@@ -270,7 +270,7 @@ impl PlainTextFormatter {
         } else {
             writeln!(
                 buffer,
-                " {space:^width$} |",
+                "{space:^width$} |",
                 space = " ",
                 width = line_number_digits,
             )?;
@@ -313,10 +313,10 @@ mod tests {
         assert_eq!(
             r#"error[E1]: `-1` is out of the range: `1..3`.
  --> plain_text_formatter/formats_single_line_expr.toml:2:13
-   |
- 2 | i32_value = -1
-   |             ^^
-   = note: expected one of: `1`, `2`, `3`
+  |
+2 | i32_value = -1
+  |             ^^
+  = note: expected one of: `1`, `2`, `3`
 "#,
             formatted_err
         );
@@ -336,9 +336,9 @@ mod tests {
         assert_eq!(
             r#"error[E0091]: `-1` is out of range.
  --> plain_text_formatter/zero_pads_error_code_log_10_exact.toml:2:13
-   |
- 2 | i32_value = -1
-   |             ^^
+  |
+2 | i32_value = -1
+  |             ^^
 "#,
             formatted_err
         );
@@ -358,9 +358,9 @@ mod tests {
         assert_eq!(
             r#"error[E0091]: `-1` is out of range.
  --> plain_text_formatter/zero_pads_error_code_log_10_inexact.toml:2:13
-   |
- 2 | i32_value = -1
-   |             ^^
+  |
+2 | i32_value = -1
+  |             ^^
 "#,
             formatted_err
         );
@@ -381,10 +381,10 @@ mod tests {
         assert_eq!(
             r#"error[E1]: `-1` is out of the range: `1..3`.
  --> plain_text_formatter/formats_multi_line_expr_context_before.toml:2:13
-   |
- 1 | [simple]
- 2 | i32_value = -1
-   |             ^^
+  |
+1 | [simple]
+2 | i32_value = -1
+  |             ^^
 "#,
             formatted_err
         );
@@ -407,19 +407,19 @@ chosen: "ghi"
         assert_eq!(
             r#"error[E100]: `chosen` value `ghi` is invalid.
  --> plain_text_formatter/formats_multi_line_expr_context_both.yaml:6:9
-   |
- 6 | chosen: "ghi"
-   |         ^^^^^
-   = note: expected one of: `abc`, `def`
+  |
+6 | chosen: "ghi"
+  |         ^^^^^
+  = note: expected one of: `abc`, `def`
 
 help: `chosen` value must come from one of `available` values:
  --> plain_text_formatter/formats_multi_line_expr_context_both.yaml:2:1
-   |
- 2 | available:
- 3 | - abc
- 4 | - def
-   |
-   = hint: first defined here
+  |
+2 | available:
+3 | - abc
+4 | - def
+  |
+  = hint: first defined here
 "#,
             formatted_err
         );
