@@ -85,7 +85,7 @@ impl PlainTextFormatter {
 
             writeln!(
                 buffer,
-                " --> {path}:{line}:{col}",
+                "  --> {path}:{line}:{col}",
                 path = path.display(),
                 line = line_number,
                 col = col_number,
@@ -167,12 +167,12 @@ impl PlainTextFormatter {
     ///
     /// ```rust,ignore
     /// help: `chosen` value must come from one of `available` values:
-    ///  --> src/dynamic_value.yaml:1:1
-    ///   |
-    /// 1 | available:
-    /// 2 |  - abc
-    /// 3 |  - def
-    ///   |
+    ///   --> src/dynamic_value.yaml:1:1
+    ///    |
+    ///  1 | available:
+    ///  2 |  - abc
+    ///  3 |  - def
+    ///    |
     /// ```
     fn fmt_suggestion_source_ref_hint<'f, 'path, 'source, W>(
         buffer: &mut W,
@@ -312,7 +312,7 @@ mod tests {
 
         assert_eq!(
             r#"error[E1]: `-1` is out of the range: `1..3`.
- --> plain_text_formatter/formats_single_line_expr.toml:2:13
+  --> plain_text_formatter/formats_single_line_expr.toml:2:13
    |
  2 | i32_value = -1
    |             ^^
@@ -335,7 +335,7 @@ mod tests {
 
         assert_eq!(
             r#"error[E0091]: `-1` is out of range.
- --> plain_text_formatter/zero_pads_error_code_log_10_exact.toml:2:13
+  --> plain_text_formatter/zero_pads_error_code_log_10_exact.toml:2:13
    |
  2 | i32_value = -1
    |             ^^
@@ -357,7 +357,7 @@ mod tests {
 
         assert_eq!(
             r#"error[E0091]: `-1` is out of range.
- --> plain_text_formatter/zero_pads_error_code_log_10_inexact.toml:2:13
+  --> plain_text_formatter/zero_pads_error_code_log_10_inexact.toml:2:13
    |
  2 | i32_value = -1
    |             ^^
@@ -380,7 +380,7 @@ mod tests {
 
         assert_eq!(
             r#"error[E1]: `-1` is out of the range: `1..3`.
- --> plain_text_formatter/formats_multi_line_expr_context_before.toml:2:13
+  --> plain_text_formatter/formats_multi_line_expr_context_before.toml:2:13
    |
  1 | [simple]
  2 | i32_value = -1
@@ -406,14 +406,14 @@ chosen: "ghi"
 
         assert_eq!(
             r#"error[E100]: `chosen` value `ghi` is invalid.
- --> plain_text_formatter/formats_multi_line_expr_context_both.yaml:6:9
+  --> plain_text_formatter/formats_multi_line_expr_context_both.yaml:6:9
    |
  6 | chosen: "ghi"
    |         ^^^^^
    = note: expected one of: `abc`, `def`
 
 help: `chosen` value must come from one of `available` values:
- --> plain_text_formatter/formats_multi_line_expr_context_both.yaml:2:1
+  --> plain_text_formatter/formats_multi_line_expr_context_both.yaml:2:1
    |
  2 | available:
  3 | - abc
