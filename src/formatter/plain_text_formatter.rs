@@ -740,14 +740,14 @@ help: `chosen` value must come from one of `available` values:
             Cow::Borrowed(&content[17..20]),
             Cow::Borrowed(&content[23..26]),
         ]);
-        let suggestion_1 = Suggestion::SourceRefHint(SourceRefHint {
+        let suggestion_1 = Suggestion::SourceRefHint(Box::new(SourceRefHint {
             source_ref: SourceHighlighted {
                 path: Some(Cow::Borrowed(path)),
                 expr_context: expr_context_hint_yaml_both(content),
                 expr: None,
             },
             description: String::from("`chosen` value must come from one of `available` values"),
-        });
+        }));
         let suggestion_2 = Suggestion::Hint("first defined here");
         let suggestions = vec![suggestion_0, suggestion_1, suggestion_2];
 
@@ -772,7 +772,7 @@ help: `chosen` value must come from one of `available` values:
             Cow::Borrowed(&content[17..20]),
             Cow::Borrowed(&content[23..26]),
         ]);
-        let suggestion_1 = Suggestion::SourceRefHint(SourceRefHint {
+        let suggestion_1 = Suggestion::SourceRefHint(Box::new(SourceRefHint {
             source_ref: SourceHighlighted {
                 path: Some(Cow::Borrowed(path)),
                 expr_context: expr_context_hint_yaml_both(content),
@@ -782,7 +782,7 @@ help: `chosen` value must come from one of `available` values:
                 )),
             },
             description: String::from("`chosen` value must come from one of `available` values"),
-        });
+        }));
         let suggestions = vec![suggestion_0, suggestion_1];
 
         let error_code = ChosenInvalid {

@@ -70,10 +70,10 @@ fn value_out_of_range<'path, 'source>(
             expr_context,
             expr: None,
         };
-        Suggestion::SourceRefHint(SourceRefHint {
+        Suggestion::SourceRefHint(Box::new(SourceRefHint {
             source_ref,
             description: String::from("`chosen` value must come from one of `available` values"),
-        })
+        }))
     };
     let suggestion_2 = Suggestion::Hint("first defined here");
     let suggestions = vec![suggestion_0, suggestion_1, suggestion_2];
