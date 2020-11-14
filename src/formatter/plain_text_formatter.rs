@@ -7,6 +7,7 @@ use crate::{
     ErrorCode, ExprHighlighted, Severity, SourceError, SourceHighlighted, SourceRefHint, Suggestion,
 };
 
+const ARROW_BODY_VERTICAL: &str = "|";
 const DOTS_PREFIX: &str = ".. ";
 const DOTS_SUFFIX: &str = " ..";
 
@@ -16,7 +17,7 @@ pub struct PlainTextFormatter;
 
 impl PlainTextFormatter {
     /// Formats the source error as plain text.
-    pub fn fmt<'f, 'path, 'source, E>(source_error: &'f SourceError<'path, 'source, E>) -> String
+    pub fn fmt<E>(source_error: &SourceError<'_, '_, E>) -> String
     where
         E: ErrorCode,
     {
@@ -26,9 +27,9 @@ impl PlainTextFormatter {
     }
 
     /// Formats the source error as plain text.
-    pub fn fmt_buffer<'f, 'path, 'source, W, E>(
+    pub fn fmt_buffer<'path, 'source, W, E>(
         buffer: &mut W,
-        source_error: &'f SourceError<'path, 'source, E>,
+        source_error: &SourceError<'path, 'source, E>,
     ) -> Result<(), io::Error>
     where
         W: Write,
@@ -45,9 +46,9 @@ impl PlainTextFormatter {
         Ok(())
     }
 
-    fn fmt_error_code<'f, 'path, 'source, W, E>(
+    fn fmt_error_code<'path, 'source, W, E>(
         buffer: &mut W,
-        source_error: &'f SourceError<'path, 'source, E>,
+        source_error: &SourceError<'path, 'source, E>,
     ) -> Result<(), io::Error>
     where
         W: Write,
@@ -73,9 +74,9 @@ impl PlainTextFormatter {
         Ok(())
     }
 
-    fn fmt_path<'f, 'path, 'source, W>(
+    fn fmt_path<'path, 'source, W>(
         buffer: &mut W,
-        source_highlighted: &'f SourceHighlighted<'path, 'source>,
+        source_highlighted: &SourceHighlighted<'path, 'source>,
     ) -> Result<(), io::Error>
     where
         W: Write,
@@ -103,9 +104,9 @@ impl PlainTextFormatter {
         Ok(())
     }
 
-    fn fmt_error_expr<'f, 'path, 'source, W, E>(
+    fn fmt_error_expr<'path, 'source, W, E>(
         buffer: &mut W,
-        source_error: &'f SourceError<'path, 'source, E>,
+        source_error: &SourceError<'path, 'source, E>,
         line_number_digits: usize,
     ) -> Result<(), io::Error>
     where
@@ -120,9 +121,9 @@ impl PlainTextFormatter {
         )
     }
 
-    fn fmt_suggestions<'f, 'path, 'source, W, E>(
+    fn fmt_suggestions<'path, 'source, W, E>(
         buffer: &mut W,
-        source_error: &'f SourceError<'path, 'source, E>,
+        source_error: &SourceError<'path, 'source, E>,
         line_number_digits: usize,
     ) -> Result<(), io::Error>
     where
@@ -149,7 +150,7 @@ impl PlainTextFormatter {
         Ok(())
     }
 
-    fn fmt_suggestion_valid_expr<'f, 'path, 'source, W>(
+    fn fmt_suggestion_valid_expr<'source, W>(
         buffer: &mut W,
         valid_exprs: &[Cow<'source, str>],
         line_number_digits: usize,
@@ -187,7 +188,7 @@ impl PlainTextFormatter {
     ///  3 |  - def
     ///    |
     /// ```
-    fn fmt_suggestion_source_ref_hint<'f, 'path, 'source, W>(
+    fn fmt_suggestion_source_ref_hint<'path, 'source, W>(
         buffer: &mut W,
         source_ref_hint: &SourceRefHint<'path, 'source>,
         line_number_digits: usize,
@@ -214,9 +215,9 @@ impl PlainTextFormatter {
     /// ```rust,ignore
     ///   = hint: first defined here
     /// ```
-    fn fmt_suggestion_hint<'f, 'path, 'source, W>(
+    fn fmt_suggestion_hint<W>(
         buffer: &mut W,
-        hint: &'source str,
+        hint: &str,
         line_number_digits: usize,
     ) -> Result<(), io::Error>
     where
@@ -233,9 +234,9 @@ impl PlainTextFormatter {
         Ok(())
     }
 
-    fn fmt_source_highlighted<'f, 'path, 'source, W>(
+    fn fmt_source_highlighted<'path, 'source, W>(
         buffer: &mut W,
-        source_highlighted: &'f SourceHighlighted<'path, 'source>,
+        source_highlighted: &SourceHighlighted<'path, 'source>,
         line_number_digits: usize,
         marker: &str,
     ) -> Result<(), io::Error>
@@ -347,10 +348,10 @@ impl PlainTextFormatter {
         Ok(())
     }
 
-    fn fmt_expr_context<'f, 'source, W>(
+    fn fmt_expr_context<W>(
         buffer: &mut W,
         line_number_digits: usize,
-        line: &'source str,
+        line: &str,
         current_line_number: usize,
         surround_with_dots: bool,
     ) -> Result<(), io::Error>
@@ -388,9 +389,9 @@ impl PlainTextFormatter {
         Ok(())
     }
 
-    fn fmt_expr_highlighted<'f, 'source, W>(
+    fn fmt_expr_highlighted<'source, W>(
         buffer: &mut W,
-        expr: &'f ExprHighlighted<'source>,
+        expr: &ExprHighlighted<'source>,
         line_number_digits: usize,
         context_col_offset: usize,
         marker: &str,
@@ -420,7 +421,7 @@ impl PlainTextFormatter {
         Ok(())
     }
 
-    fn fmt_expr_column_hint<'f, 'source, W>(
+    fn fmt_expr_column_hint<W>(
         buffer: &mut W,
         line_number_digits: usize,
         context_col_offset: usize,
@@ -436,7 +437,7 @@ impl PlainTextFormatter {
             space = " ",
             width = line_number_digits,
             pad = expr_col_number - context_col_offset,
-            arrow_body = "|",
+            arrow_body = ARROW_BODY_VERTICAL,
         )?;
 
         // Column number
@@ -739,14 +740,14 @@ help: `chosen` value must come from one of `available` values:
             Cow::Borrowed(&content[17..20]),
             Cow::Borrowed(&content[23..26]),
         ]);
-        let suggestion_1 = Suggestion::SourceRefHint(SourceRefHint {
+        let suggestion_1 = Suggestion::SourceRefHint(Box::new(SourceRefHint {
             source_ref: SourceHighlighted {
                 path: Some(Cow::Borrowed(path)),
                 expr_context: expr_context_hint_yaml_both(content),
                 expr: None,
             },
             description: String::from("`chosen` value must come from one of `available` values"),
-        });
+        }));
         let suggestion_2 = Suggestion::Hint("first defined here");
         let suggestions = vec![suggestion_0, suggestion_1, suggestion_2];
 
@@ -771,7 +772,7 @@ help: `chosen` value must come from one of `available` values:
             Cow::Borrowed(&content[17..20]),
             Cow::Borrowed(&content[23..26]),
         ]);
-        let suggestion_1 = Suggestion::SourceRefHint(SourceRefHint {
+        let suggestion_1 = Suggestion::SourceRefHint(Box::new(SourceRefHint {
             source_ref: SourceHighlighted {
                 path: Some(Cow::Borrowed(path)),
                 expr_context: expr_context_hint_yaml_both(content),
@@ -781,7 +782,7 @@ help: `chosen` value must come from one of `available` values:
                 )),
             },
             description: String::from("`chosen` value must come from one of `available` values"),
-        });
+        }));
         let suggestions = vec![suggestion_0, suggestion_1];
 
         let error_code = ChosenInvalid {
