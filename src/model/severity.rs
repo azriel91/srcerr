@@ -3,10 +3,12 @@
 pub enum Severity {
     /// Error should prevent the operation from progressing.
     ///
-    /// Recommended when the user needs to address an issue before retrying the operation.
+    /// Recommended when the user needs to address an issue before retrying the
+    /// operation.
     Deny,
     /// Error should not prevent the operation from continuing.
     ///
-    /// Recommended for informatives such as deprecation notices and convention changes.
+    /// Recommended for informatives such as deprecation notices and convention
+    /// changes.
     Warn,
 }
