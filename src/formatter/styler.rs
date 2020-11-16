@@ -21,13 +21,32 @@ where
     const HINT_MARKER: &'static str = "-";
 
     /// Writes a token before writing all of the margin lines.
-    fn margin_line_begin(buffer: &mut W) -> Result<(), io::Error>;
+    fn margin_begin(buffer: &mut W) -> Result<(), io::Error>;
     /// Writes a token after writing all of the margin lines.
-    fn margin_line_end(buffer: &mut W) -> Result<(), io::Error>;
+    fn margin_end(buffer: &mut W) -> Result<(), io::Error>;
 
-    /// Writes a token before writing all of the error markers.
+    /// Writes a token before writing the error code -- `E001`.
+    fn error_code_begin(buffer: &mut W) -> Result<(), io::Error>;
+    /// Writes a token after writing the error code -- `E001`.
+    fn error_code_end(buffer: &mut W) -> Result<(), io::Error>;
+
+    /// Writes a token before writing the error tag -- `error[` and `]`.
+    fn error_tag_begin(buffer: &mut W) -> Result<(), io::Error>;
+    /// Writes a token after writing the error tag -- `error[` and `]`.
+    fn error_tag_end(buffer: &mut W) -> Result<(), io::Error>;
+
+    /// Writes a token before writing the error description.
+    fn error_description_begin(buffer: &mut W) -> Result<(), io::Error>;
+    /// Writes a token after writing the error description.
+    fn error_description_end(buffer: &mut W) -> Result<(), io::Error>;
+
+    /// Writes a token before writing all of the [error markers].
+    ///
+    /// [error markers]: `Styler::ERROR_MARKER`
     fn error_marker_begin(buffer: &mut W) -> Result<(), io::Error>;
-    /// Writes a token after writing all of the error markers.
+    /// Writes a token after writing all of the [error markers].
+    ///
+    /// [error markers]: `Styler::ERROR_MARKER`
     fn error_marker_end(buffer: &mut W) -> Result<(), io::Error>;
 
     /// Writes a token before writing all of the hint markers.
@@ -43,4 +62,27 @@ where
     fn hint_info_begin(buffer: &mut W) -> Result<(), io::Error>;
     /// Writes a token after writing an info hint.
     fn hint_info_end(buffer: &mut W) -> Result<(), io::Error>;
+
+    /// Writes a token before writing a line or column number.
+    fn number_begin(buffer: &mut W) -> Result<(), io::Error>;
+    /// Writes a token after writing a line or column number.
+    fn number_end(buffer: &mut W) -> Result<(), io::Error>;
+
+    /// Writes a token before writing the source path.
+    fn path_begin(buffer: &mut W) -> Result<(), io::Error>;
+    /// Writes a token after writing the source path.
+    fn path_end(buffer: &mut W) -> Result<(), io::Error>;
+
+    /// Writes a token before writing the warning tag -- `warning[` and `]`.
+    ///
+    /// There are no corresponding `warning_code_*` or `warning_description_*`
+    /// methods, as these are assumed to use the same styles as the `error_*`
+    /// format.
+    fn warning_tag_begin(buffer: &mut W) -> Result<(), io::Error>;
+    /// Writes a token after writing the warning tag -- `warning[` and `]`.
+    ///
+    /// There are no corresponding `warning_code_*` or `warning_description_*`
+    /// methods, as these are assumed to use the same styles as the `error_*`
+    /// format.
+    fn warning_tag_end(buffer: &mut W) -> Result<(), io::Error>;
 }

@@ -25,7 +25,7 @@ impl<S> SourceErrorFormatter<Vec<u8>, S>
 where
     S: Styler<Vec<u8>>,
 {
-    /// Formats the source error as plain text.
+    /// Formats the source error as a string.
     pub fn fmt<E>(source_error: &SourceError<'_, '_, E>) -> String
     where
         E: ErrorCode,
@@ -42,7 +42,7 @@ where
     W: Write,
     S: Styler<W>,
 {
-    /// Formats the source error as plain text.
+    /// Formats the source error, delegating to the styler for styles.
     pub fn fmt_buffer<'path, 'source, E>(
         buffer: &mut W,
         source_error: &SourceError<'path, 'source, E>,
@@ -68,22 +68,56 @@ where
     where
         E: ErrorCode,
     {
-        match source_error.severity {
-            Severity::Deny => write!(buffer, "error")?,
-            Severity::Warn => write!(buffer, "warn")?,
-        }
-
         let digits = Self::digits(E::ERROR_CODE_MAX);
         let error_code = &source_error.error_code;
-        write!(
-            buffer,
-            "[{prefix}{code:0>width$}]: ",
-            prefix = E::PREFIX,
-            code = error_code.code(),
-            width = digits
-        )?;
+
+        match source_error.severity {
+            Severity::Deny => {
+                S::error_tag_begin(buffer)?;
+                write!(buffer, "error[")?;
+                S::error_tag_end(buffer)?;
+
+                S::error_code_begin(buffer)?;
+                write!(
+                    buffer,
+                    "{prefix}{code:0>width$}",
+                    prefix = E::PREFIX,
+                    code = error_code.code(),
+                    width = digits
+                )?;
+                S::error_code_end(buffer)?;
+
+                S::error_tag_begin(buffer)?;
+                write!(buffer, "]")?;
+                S::error_tag_end(buffer)?;
+            }
+            Severity::Warn => {
+                S::warning_tag_begin(buffer)?;
+                write!(buffer, "warning[")?;
+                S::warning_tag_end(buffer)?;
+
+                S::error_code_begin(buffer)?;
+                write!(
+                    buffer,
+                    "{prefix}{code:0>width$}",
+                    prefix = E::PREFIX,
+                    code = error_code.code(),
+                    width = digits
+                )?;
+                S::error_code_end(buffer)?;
+
+                S::warning_tag_begin(buffer)?;
+                write!(buffer, "]")?;
+                S::warning_tag_end(buffer)?;
+            }
+        }
+
+        S::error_description_begin(buffer)?;
+        write!(buffer, ": ")?;
         error_code.fmt_description(buffer)?;
-        writeln!(buffer)?;
+        S::error_description_end(buffer)?;
+
+        write!(buffer, "{}", S::NEWLINE)?;
 
         Ok(())
     }
@@ -103,13 +137,39 @@ where
                 )
             };
 
-            writeln!(
-                buffer,
-                "  --> {path}:{line}:{col}",
-                path = path.display(),
-                line = line_number,
-                col = col_number,
-            )?;
+            // Unstyled:
+            //
+            // writeln!(
+            //     buffer,
+            //     "  --> {path}:{line}:{col}",
+            //     path = path.display(),
+            //     line = line_number,
+            //     col = col_number,
+            // )?;
+
+            write!(buffer, "  ")?;
+            S::margin_begin(buffer)?;
+            write!(buffer, "-->")?;
+            S::margin_end(buffer)?;
+            write!(buffer, " ")?;
+
+            S::path_begin(buffer)?;
+            write!(buffer, "{path}", path = path.display())?;
+            S::path_end(buffer)?;
+
+            write!(buffer, ":")?;
+
+            S::number_begin(buffer)?;
+            write!(buffer, "{line}", line = line_number)?;
+            S::number_end(buffer)?;
+
+            write!(buffer, ":")?;
+
+            S::number_begin(buffer)?;
+            write!(buffer, "{col}", col = col_number)?;
+            S::number_end(buffer)?;
+
+            write!(buffer, "{}", S::NEWLINE)?;
         }
 
         Ok(())
@@ -164,9 +224,11 @@ where
         valid_exprs: &[Cow<'source, str>],
         line_number_digits: usize,
     ) -> Result<(), io::Error> {
+        S::hint_info_begin(buffer)?;
+
         write!(
             buffer,
-            " {space:^width$} = note: expected one of: ",
+            " {space:>width$} = note: expected one of: ",
             space = " ",
             width = line_number_digits
         )?;
@@ -176,7 +238,10 @@ where
             write!(buffer, "`{}`", first_valid_expr)?;
         }
         valid_exprs.try_for_each(|valid_expr| write!(buffer, ", `{}`", valid_expr))?;
-        writeln!(buffer)?;
+
+        S::hint_info_end(buffer)?;
+
+        write!(buffer, "{}", S::NEWLINE)?;
 
         Ok(())
     }
@@ -199,12 +264,17 @@ where
         source_ref_hint: &SourceRefHint<'path, 'source>,
         line_number_digits: usize,
     ) -> Result<(), io::Error> {
-        writeln!(buffer)?;
-        writeln!(
+        write!(buffer, "{}", S::NEWLINE)?;
+
+        S::hint_info_begin(buffer)?;
+        write!(
             buffer,
             "help: {description}:",
             description = source_ref_hint.description
         )?;
+        S::hint_info_end(buffer)?;
+        write!(buffer, "{}", S::NEWLINE)?;
+
         Self::fmt_path(buffer, &source_ref_hint.source_ref)?;
         Self::fmt_source_highlighted(buffer, &source_ref_hint.source_ref, line_number_digits, "-")?;
 
@@ -223,13 +293,18 @@ where
         hint: &str,
         line_number_digits: usize,
     ) -> Result<(), io::Error> {
-        writeln!(
+        write!(
             buffer,
-            " {space:^width$} = hint: {hint}",
+            " {space:>width$} ",
             space = " ",
             width = line_number_digits,
-            hint = hint,
         )?;
+
+        S::hint_info_begin(buffer)?;
+        write!(buffer, "= hint: {hint}", hint = hint)?;
+        S::hint_info_end(buffer)?;
+
+        write!(buffer, "{}", S::NEWLINE)?;
 
         Ok(())
     }
@@ -244,12 +319,17 @@ where
         let expr = &source_highlighted.expr;
 
         // Leading empty line.
-        writeln!(
+        write!(
             buffer,
-            " {space:^width$} |",
+            " {space:>width$} ",
             space = " ",
             width = line_number_digits
         )?;
+        S::margin_begin(buffer)?;
+        write!(buffer, "{}", S::MARGIN_LINE)?;
+        S::margin_end(buffer)?;
+
+        write!(buffer, "{}", S::NEWLINE)?;
 
         // Expression context.
         let is_partial_line = expr_context.inner.col_number > 1;
@@ -310,12 +390,17 @@ where
             // * We are rendering a partial context, and have written the column number hint
             //   previously.
             if last_line_number != expr.inner.line_number + 1 || is_partial_line {
-                writeln!(
+                write!(
                     buffer,
-                    " {space:^width$} |",
+                    " {space:>width$} ",
                     space = " ",
                     width = line_number_digits,
                 )?;
+                S::margin_begin(buffer)?;
+                write!(buffer, "{}", S::MARGIN_LINE)?;
+                S::margin_end(buffer)?;
+
+                write!(buffer, "{}", S::NEWLINE)?;
             }
         } else {
             let first_line_number = expr_context.inner.line_number;
@@ -334,12 +419,17 @@ where
                 Result::<usize, io::Error>::Ok(current_line_number + 1)
             })?;
 
-            writeln!(
+            write!(
                 buffer,
-                " {space:^width$} |",
+                " {space:>width$} ",
                 space = " ",
                 width = line_number_digits,
             )?;
+            S::margin_begin(buffer)?;
+            write!(buffer, "{}", S::MARGIN_LINE)?;
+            S::margin_end(buffer)?;
+
+            write!(buffer, "{}", S::NEWLINE)?;
         }
 
         Ok(())
@@ -355,10 +445,15 @@ where
         // Line numbers and margin
         write!(
             buffer,
-            " {line_number:^width$} | ",
+            " {line_number:^width$} ",
             line_number = current_line_number,
             width = line_number_digits,
         )?;
+        S::margin_begin(buffer)?;
+        write!(buffer, "{}", S::MARGIN_LINE)?;
+        S::margin_end(buffer)?;
+
+        write!(buffer, " ")?;
 
         // Dots to indicate only part of the line is rendered.
         if surround_with_dots {
@@ -378,7 +473,7 @@ where
             write!(buffer, "{}", DOTS_SUFFIX)?;
         }
 
-        writeln!(buffer)?;
+        write!(buffer, "{}", S::NEWLINE)?;
 
         Ok(())
     }
@@ -396,18 +491,34 @@ where
         // Highlight the expression.
         write!(
             buffer,
-            " {space:^width$} | {marker:>pad$}",
+            " {space:>width$} ",
             space = " ",
             width = line_number_digits,
+        )?;
+
+        S::margin_begin(buffer)?;
+        write!(buffer, "{}", S::MARGIN_LINE)?;
+        S::margin_end(buffer)?;
+        write!(buffer, " ")?;
+
+        // TODO: Severity.
+        // TODO: Don't include the padding in the formatting.
+        S::error_marker_begin(buffer)?;
+        write!(
+            buffer,
+            "{marker:>pad$}",
             marker = marker,
             pad = expr.inner.col_number - context_col_offset + expr_char_count,
         )?;
+        S::error_marker_end(buffer)?;
 
+        S::hint_error_begin(buffer)?;
         if let Some(hint) = expr.hint.as_ref() {
             write!(buffer, " hint: {hint}", hint = hint)?;
         }
+        S::hint_error_end(buffer)?;
 
-        writeln!(buffer)?;
+        write!(buffer, "{}", S::NEWLINE)?;
 
         Ok(())
     }
@@ -419,24 +530,26 @@ where
         expr_col_number: usize,
     ) -> Result<(), io::Error> {
         // Arrow body
-        writeln!(
+        write!(
             buffer,
-            " {space:^width$} | {space:>pad$}{arrow_body}",
+            " {space:>width$} | {space:>pad$}{arrow_body}",
             space = " ",
             width = line_number_digits,
             pad = expr_col_number - context_col_offset,
             arrow_body = ARROW_BODY_VERTICAL,
         )?;
+        write!(buffer, "{}", S::NEWLINE)?;
 
         // Column number
-        writeln!(
+        write!(
             buffer,
-            " {space:^width$} | {space:>pad$}{col_number}",
+            " {space:>width$} | {space:>pad$}{col_number}",
             space = " ",
             width = line_number_digits,
             pad = expr_col_number - context_col_offset,
             col_number = expr_col_number,
         )?;
+        write!(buffer, "{}", S::NEWLINE)?;
 
         Ok(())
     }
