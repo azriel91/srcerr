@@ -5,6 +5,8 @@ pub use self::plain_text_styler::PlainTextStyler;
 mod plain_text_styler;
 
 /// Formats a [`SourceError`] as plain text.
+///
+/// [`SourceError`]: `crate::SourceError`
 pub type PlainTextFormatter<W> = SourceErrorFormatter<W, PlainTextStyler>;
 
 #[cfg(test)]
