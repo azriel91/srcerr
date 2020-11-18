@@ -9,7 +9,6 @@ use crate::{
     Suggestion,
 };
 
-const ARROW_BODY_VERTICAL: &str = "|";
 const DOTS_PREFIX: &str = ".. ";
 const DOTS_SUFFIX: &str = " ..";
 
@@ -532,12 +531,27 @@ where
         // Arrow body
         write!(
             buffer,
-            " {space:>width$} | {space:>pad$}{arrow_body}",
+            " {space:>width$} ",
             space = " ",
             width = line_number_digits,
-            pad = expr_col_number - context_col_offset,
-            arrow_body = ARROW_BODY_VERTICAL,
         )?;
+        S::margin_begin(buffer)?;
+        write!(buffer, "{}", S::MARGIN_LINE)?;
+        S::margin_end(buffer)?;
+        write!(
+            buffer,
+            " {space:>pad$}",
+            space = " ",
+            pad = expr_col_number - context_col_offset,
+        )?;
+        // TODO: Severity.
+        S::error_marker_begin(buffer)?;
+        write!(
+            buffer,
+            "{arrow_body}",
+            arrow_body = S::ERROR_MARKER_VERTICAL
+        )?;
+        S::error_marker_end(buffer)?;
         write!(buffer, "{}", S::NEWLINE)?;
 
         // Column number

@@ -14,6 +14,11 @@ where
     /// This is assumed to render as 1 character wide, though it may be made up
     /// of multiple characters.
     const ERROR_MARKER: &'static str = "^";
+    /// `&str` to use for the vertical arrow body for an error marker.
+    ///
+    /// This is assumed to render as 1 character wide, though it may be made up
+    /// of multiple characters.
+    const ERROR_MARKER_VERTICAL: &'static str = "|";
     /// `&str` to use for the hint marker.
     ///
     /// This is assumed to render as 1 character wide, though it may be made up
