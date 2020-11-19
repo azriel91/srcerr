@@ -11,4 +11,8 @@ keywords = ["error", "format"]
 license = "MIT OR Apache-2.0"
 
 [dependencies]
-ansi_term = "0.12.1"
+ansi_term = { version = "0.12.1", optional = true }
+
+[features]
+default = ["ansi_color"]
+ansi_color = ["ansi_term"]
