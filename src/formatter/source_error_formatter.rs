@@ -234,8 +234,8 @@ where
 
         write!(
             buffer,
-            " {space:>width$} = note: expected one of: ",
-            space = " ",
+            " {empty:>width$} = note: expected one of: ",
+            empty = "",
             width = line_number_digits
         )?;
 
@@ -308,8 +308,8 @@ where
     ) -> Result<(), io::Error> {
         write!(
             buffer,
-            " {space:>width$} ",
-            space = " ",
+            " {empty:>width$} ",
+            empty = "",
             width = line_number_digits,
         )?;
 
@@ -335,8 +335,8 @@ where
         // Leading empty line.
         write!(
             buffer,
-            " {space:>width$} ",
-            space = " ",
+            " {empty:>width$} ",
+            empty = "",
             width = line_number_digits
         )?;
         S::margin_begin(buffer)?;
@@ -408,8 +408,8 @@ where
             if last_line_number != expr.inner.line_number + 1 || is_partial_line {
                 write!(
                     buffer,
-                    " {space:>width$} ",
-                    space = " ",
+                    " {empty:>width$} ",
+                    empty = "",
                     width = line_number_digits,
                 )?;
                 S::margin_begin(buffer)?;
@@ -437,8 +437,8 @@ where
 
             write!(
                 buffer,
-                " {space:>width$} ",
-                space = " ",
+                " {empty:>width$} ",
+                empty = "",
                 width = line_number_digits,
             )?;
             S::margin_begin(buffer)?;
@@ -508,8 +508,8 @@ where
         // Highlight the expression.
         write!(
             buffer,
-            " {space:>width$} ",
-            space = " ",
+            " {empty:>width$} ",
+            empty = "",
             width = line_number_digits,
         )?;
 
@@ -518,14 +518,14 @@ where
         S::margin_end(buffer)?;
         write!(buffer, " ")?;
 
-        // TODO: Don't include the padding in the formatting.
         let (style_marker_begin, style_marker_end) = Self::style_marker_fns(highlight_level);
         style_marker_begin(buffer)?;
         write!(
             buffer,
-            "{marker:>pad$}",
+            "{empty:>pad$}{marker}",
+            empty = "",
+            pad = expr.inner.col_number - context_col_offset,
             marker = marker,
-            pad = expr.inner.col_number - context_col_offset + expr_char_count,
         )?;
         style_marker_end(buffer)?;
 
@@ -550,8 +550,8 @@ where
         // Arrow body
         write!(
             buffer,
-            " {space:>width$} ",
-            space = " ",
+            " {empty:>width$} ",
+            empty = "",
             width = line_number_digits,
         )?;
         S::margin_begin(buffer)?;
@@ -559,8 +559,8 @@ where
         S::margin_end(buffer)?;
         write!(
             buffer,
-            " {space:>pad$}",
-            space = " ",
+            " {empty:>pad$}",
+            empty = "",
             pad = expr_col_number - context_col_offset,
         )?;
         let (style_marker_begin, style_marker_end) = Self::style_marker_fns(highlight_level);
@@ -576,8 +576,8 @@ where
         // Column number
         write!(
             buffer,
-            " {space:>width$} | {space:>pad$}{col_number}",
-            space = " ",
+            " {empty:>width$} | {empty:>pad$}{col_number}",
+            empty = "",
             width = line_number_digits,
             pad = expr_col_number - context_col_offset,
             col_number = expr_col_number,
