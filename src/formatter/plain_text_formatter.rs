@@ -204,6 +204,29 @@ help: `chosen` value must come from one of `available` values:
         );
     }
 
+    #[test]
+    fn path_arrow_moves_with_line_number_margin() {
+        let path = Path::new("plain_text_formatter/path_arrow_moves_with_line_number_margin.toml");
+        let content = "\
+            [simple]\n\
+            i32_value = -1\n\
+            ";
+        let value_out_of_range_high_line = value_out_of_range_high_line(&path, content);
+
+        let formatted_err = PlainTextFormatter::fmt(&value_out_of_range_high_line);
+
+        assert_eq!(
+            r#"error[E1]: `-1` is out of the range: `1..3`.
+    --> plain_text_formatter/path_arrow_moves_with_line_number_margin.toml:201:13
+     |
+ 201 | i32_value = -1
+     |             ^^
+     = note: expected one of: `1`, `2`, `3`
+"#,
+            formatted_err
+        );
+    }
+
     fn value_out_of_range<'path, 'source>(
         path: &'path Path,
         content: &'source str,
@@ -226,6 +249,32 @@ help: `chosen` value must come from one of `available` values:
             error_code,
             expr_toml_single,
             expr_context_single,
+            suggestions,
+        )
+    }
+
+    fn value_out_of_range_high_line<'path, 'source>(
+        path: &'path Path,
+        content: &'source str,
+    ) -> SourceError<'path, 'source, ValueOutOfRange> {
+        let range = 1..=3;
+        let error_code = ValueOutOfRange {
+            value: -1,
+            range: range.clone(),
+        };
+        let valid_exprs = range
+            .map(|n| n.to_string())
+            .map(Cow::Owned)
+            .collect::<Vec<_>>();
+        let suggestion_0 = Suggestion::ValidExprs(valid_exprs);
+        let suggestions = vec![suggestion_0];
+
+        source_error(
+            path,
+            content,
+            error_code,
+            expr_toml_single_high_line,
+            expr_context_single_high_line,
             suggestions,
         )
     }
@@ -402,6 +451,16 @@ help: `chosen` value must come from one of `available` values:
         ExprHighlighted { inner, hint: None }
     }
 
+    fn expr_toml_single_high_line<'source>(content: &'source str) -> ExprHighlighted<'source> {
+        let inner = Expr {
+            span: Span { start: 21, end: 23 },
+            line_number: 201,
+            col_number: 13,
+            value: Cow::Borrowed(&content[21..23]),
+        };
+        ExprHighlighted { inner, hint: None }
+    }
+
     fn expr_yaml_single<'source>(content: &'source str) -> ExprHighlighted<'source> {
         let inner = Expr {
             span: Span { start: 36, end: 41 },
@@ -426,6 +485,16 @@ help: `chosen` value must come from one of `available` values:
         let inner = Expr {
             span: Span { start: 9, end: 23 },
             line_number: 2,
+            col_number: 1,
+            value: Cow::Borrowed(&content[9..23]),
+        };
+        ExprHighlighted { inner, hint: None }
+    }
+
+    fn expr_context_single_high_line<'source>(content: &'source str) -> ExprHighlighted<'source> {
+        let inner = Expr {
+            span: Span { start: 9, end: 23 },
+            line_number: 201,
             col_number: 1,
             value: Cow::Borrowed(&content[9..23]),
         };

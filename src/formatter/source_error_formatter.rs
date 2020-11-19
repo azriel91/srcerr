@@ -58,7 +58,7 @@ where
         let line_number_digits = Self::digits(expr_context.inner.line_number);
 
         Self::fmt_error_code(buffer, source_error)?;
-        Self::fmt_path(buffer, &source_error.invalid_source)?;
+        Self::fmt_path(buffer, &source_error.invalid_source, line_number_digits)?;
         Self::fmt_error_expr(buffer, source_error, line_number_digits)?;
         Self::fmt_suggestions(buffer, source_error, line_number_digits)?;
 
@@ -129,6 +129,7 @@ where
     fn fmt_path<'path, 'source>(
         buffer: &mut W,
         source_highlighted: &SourceHighlighted<'path, 'source>,
+        line_number_digits: usize,
     ) -> Result<(), io::Error> {
         if let Some(path) = source_highlighted.path.as_ref() {
             let (line_number, col_number) = if let Some(expr) = &source_highlighted.expr {
@@ -141,17 +142,12 @@ where
                 )
             };
 
-            // Unstyled:
-            //
-            // writeln!(
-            //     buffer,
-            //     "  --> {path}:{line}:{col}",
-            //     path = path.display(),
-            //     line = line_number,
-            //     col = col_number,
-            // )?;
-
-            write!(buffer, "  ")?;
+            write!(
+                buffer,
+                " {empty:>width$}",
+                empty = "",
+                width = line_number_digits,
+            )?;
             S::margin_begin(buffer)?;
             write!(buffer, "-->")?;
             S::margin_end(buffer)?;
@@ -282,7 +278,7 @@ where
         S::hint_info_end(buffer)?;
         write!(buffer, "{}", S::NEWLINE)?;
 
-        Self::fmt_path(buffer, &source_ref_hint.source_ref)?;
+        Self::fmt_path(buffer, &source_ref_hint.source_ref, line_number_digits)?;
         Self::fmt_source_highlighted(
             buffer,
             &source_ref_hint.source_ref,
