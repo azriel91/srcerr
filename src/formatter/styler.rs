@@ -5,8 +5,12 @@ pub trait Styler<W>
 where
     W: io::Write,
 {
-    /// `&str` to use for newline. Defaults to `"\n"`.
+    /// `&str` to use for newline.
     const NEWLINE: &'static str = "\n";
+    /// `&str` to use for the space character.
+    const SPACE: &'static str = " ";
+    /// `&str` to use for the left and right of long contexts.
+    const DOTS: &'static str = "..";
     /// `&str` to use for the margin line.
     const MARGIN_LINE: &'static str = "|";
     /// `&str` to use for the highlight marker.

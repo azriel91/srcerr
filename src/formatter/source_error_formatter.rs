@@ -14,9 +14,6 @@ type StyleMarkerFns<W> = (
     fn(&mut W) -> Result<(), io::Error>,
 );
 
-const DOTS_PREFIX: &str = ".. ";
-const DOTS_SUFFIX: &str = " ..";
-
 /// Formats a [`SourceError`], delegating styling to the parameterized type.
 ///
 /// # Type Parameters
@@ -144,14 +141,14 @@ where
 
             write!(
                 buffer,
-                " {empty:>width$}",
-                empty = "",
-                width = line_number_digits,
+                "{space}{space_pad}",
+                space = S::SPACE,
+                space_pad = S::SPACE.repeat(line_number_digits),
             )?;
             S::margin_begin(buffer)?;
             write!(buffer, "-->")?;
             S::margin_end(buffer)?;
-            write!(buffer, " ")?;
+            write!(buffer, "{space}", space = S::SPACE)?;
 
             S::path_begin(buffer)?;
             write!(buffer, "{path}", path = path.display())?;
@@ -230,9 +227,9 @@ where
 
         write!(
             buffer,
-            " {empty:>width$} = note: expected one of: ",
-            empty = "",
-            width = line_number_digits
+            "{space}{space_pad} = note: expected one of: ",
+            space = S::SPACE,
+            space_pad = S::SPACE.repeat(line_number_digits),
         )?;
 
         let mut valid_exprs = valid_exprs.iter();
@@ -304,9 +301,9 @@ where
     ) -> Result<(), io::Error> {
         write!(
             buffer,
-            " {empty:>width$} ",
-            empty = "",
-            width = line_number_digits,
+            "{space}{space_pad}{space}",
+            space = S::SPACE,
+            space_pad = S::SPACE.repeat(line_number_digits),
         )?;
 
         S::hint_info_begin(buffer)?;
@@ -331,9 +328,9 @@ where
         // Leading empty line.
         write!(
             buffer,
-            " {empty:>width$} ",
-            empty = "",
-            width = line_number_digits
+            "{space}{space_pad}{space}",
+            space = S::SPACE,
+            space_pad = S::SPACE.repeat(line_number_digits),
         )?;
         S::margin_begin(buffer)?;
         write!(buffer, "{}", S::MARGIN_LINE)?;
@@ -366,7 +363,7 @@ where
 
                     if current_line_number == expr.inner.line_number {
                         let column_offset = if is_partial_line {
-                            expr_context.inner.col_number - DOTS_PREFIX.len()
+                            expr_context.inner.col_number - S::DOTS.len() - 1 // 1 for space character.
                         } else {
                             expr_context.inner.col_number
                         };
@@ -404,9 +401,9 @@ where
             if last_line_number != expr.inner.line_number + 1 || is_partial_line {
                 write!(
                     buffer,
-                    " {empty:>width$} ",
-                    empty = "",
-                    width = line_number_digits,
+                    "{space}{space_pad}{space}",
+                    space = S::SPACE,
+                    space_pad = S::SPACE.repeat(line_number_digits),
                 )?;
                 S::margin_begin(buffer)?;
                 write!(buffer, "{}", S::MARGIN_LINE)?;
@@ -433,9 +430,9 @@ where
 
             write!(
                 buffer,
-                " {empty:>width$} ",
-                empty = "",
-                width = line_number_digits,
+                "{space}{space_pad}{space}",
+                space = S::SPACE,
+                space_pad = S::SPACE.repeat(line_number_digits),
             )?;
             S::margin_begin(buffer)?;
             write!(buffer, "{}", S::MARGIN_LINE)?;
@@ -456,20 +453,22 @@ where
     ) -> Result<(), io::Error> {
         // Line numbers and margin
         S::margin_begin(buffer)?;
+        let current_line_number_digits = Self::digits(current_line_number);
         write!(
             buffer,
-            " {line_number:^width$} ",
+            "{space}{space_pad}{line_number}{space}",
             line_number = current_line_number,
-            width = line_number_digits,
+            space_pad = S::SPACE.repeat(line_number_digits - current_line_number_digits),
+            space = S::SPACE,
         )?;
         write!(buffer, "{}", S::MARGIN_LINE)?;
         S::margin_end(buffer)?;
 
-        write!(buffer, " ")?;
+        write!(buffer, "{space}", space = S::SPACE)?;
 
         // Dots to indicate only part of the line is rendered.
         if surround_with_dots {
-            write!(buffer, "{}", DOTS_PREFIX)?;
+            write!(buffer, "{dots}{space}", dots = S::DOTS, space = S::SPACE)?;
         }
 
         // The expression value.
@@ -482,7 +481,7 @@ where
         // the line is partial, or knowledge of the whole line that the expression
         // context comes from.
         if surround_with_dots {
-            write!(buffer, "{}", DOTS_SUFFIX)?;
+            write!(buffer, "{space}{dots}", space = S::SPACE, dots = S::DOTS)?;
         }
 
         write!(buffer, "{}", S::NEWLINE)?;
@@ -504,23 +503,22 @@ where
         // Highlight the expression.
         write!(
             buffer,
-            " {empty:>width$} ",
-            empty = "",
-            width = line_number_digits,
+            "{space}{space_pad}{space}",
+            space = S::SPACE,
+            space_pad = S::SPACE.repeat(line_number_digits),
         )?;
 
         S::margin_begin(buffer)?;
         write!(buffer, "{}", S::MARGIN_LINE)?;
         S::margin_end(buffer)?;
-        write!(buffer, " ")?;
+        write!(buffer, "{space}", space = S::SPACE)?;
 
         let (style_marker_begin, style_marker_end) = Self::style_marker_fns(highlight_level);
         style_marker_begin(buffer)?;
         write!(
             buffer,
-            "{empty:>pad$}{marker}",
-            empty = "",
-            pad = expr.inner.col_number - context_col_offset,
+            "{space_pad}{marker}",
+            space_pad = S::SPACE.repeat(expr.inner.col_number - context_col_offset),
             marker = marker,
         )?;
         style_marker_end(buffer)?;
@@ -546,18 +544,18 @@ where
         // Arrow body
         write!(
             buffer,
-            " {empty:>width$} ",
-            empty = "",
-            width = line_number_digits,
+            "{space}{space_pad}{space}",
+            space = S::SPACE,
+            space_pad = S::SPACE.repeat(line_number_digits),
         )?;
         S::margin_begin(buffer)?;
         write!(buffer, "{}", S::MARGIN_LINE)?;
         S::margin_end(buffer)?;
         write!(
             buffer,
-            " {empty:>pad$}",
-            empty = "",
-            pad = expr_col_number - context_col_offset,
+            "{space}{space_pad}",
+            space = S::SPACE,
+            space_pad = S::SPACE.repeat(expr_col_number - context_col_offset),
         )?;
         let (style_marker_begin, style_marker_end) = Self::style_marker_fns(highlight_level);
         style_marker_begin(buffer)?;
@@ -572,10 +570,10 @@ where
         // Column number
         write!(
             buffer,
-            " {empty:>width$} | {empty:>pad$}{col_number}",
-            empty = "",
-            width = line_number_digits,
-            pad = expr_col_number - context_col_offset,
+            "{space}{space_margin}{space}|{space}{space_pad}{col_number}",
+            space = S::SPACE,
+            space_margin = S::SPACE.repeat(line_number_digits),
+            space_pad = S::SPACE.repeat(expr_col_number - context_col_offset),
             col_number = expr_col_number,
         )?;
         write!(buffer, "{}", S::NEWLINE)?;
