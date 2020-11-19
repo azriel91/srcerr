@@ -9,6 +9,11 @@ use crate::{
     SourceRefHint, Styler, Suggestion,
 };
 
+type StyleMarkerFns<W> = (
+    fn(&mut W) -> Result<(), io::Error>,
+    fn(&mut W) -> Result<(), io::Error>,
+);
+
 const DOTS_PREFIX: &str = ".. ";
 const DOTS_SUFFIX: &str = " ..";
 
@@ -591,12 +596,7 @@ where
         (value_max as f32).log10().floor() as usize + 1
     }
 
-    fn style_marker_fns(
-        highlight_level: HighlightLevel,
-    ) -> (
-        fn(&mut W) -> Result<(), io::Error>,
-        fn(&mut W) -> Result<(), io::Error>,
-    ) {
+    fn style_marker_fns(highlight_level: HighlightLevel) -> StyleMarkerFns<W> {
         match highlight_level {
             HighlightLevel::Error => (S::error_marker_begin, S::error_marker_end),
             HighlightLevel::Warning => (S::warning_marker_begin, S::warning_marker_end),
