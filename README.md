@@ -51,6 +51,7 @@ cargo run --example simple
 cargo run --example source_ref_hint
 cargo run --example source_ref_hint_inline
 cargo run --example long_expr_context
+cargo run --example html > /tmp/index.html
 ```
 
 ## License
