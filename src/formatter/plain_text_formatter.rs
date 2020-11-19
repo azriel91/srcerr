@@ -13,6 +13,8 @@ pub type PlainTextFormatter<W> = SourceErrorFormatter<W, PlainTextStyler>;
 mod tests {
     use std::{borrow::Cow, io, ops::RangeInclusive, path::Path};
 
+    use pretty_assertions::assert_eq;
+
     use crate::{
         ErrorCode, Expr, ExprHighlighted, Severity, SourceError, SourceHighlighted, SourceRefHint,
         Span, Suggestion,
