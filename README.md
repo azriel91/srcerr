@@ -6,6 +6,10 @@
 
 User friendly errors from source data.
 
+This crate provides a `SourceError` type, which is formatted like Rust's compiler errors. Consumers are responsible for providing the correct byte and character indices, and line and column numbers.
+
+Color support is enabled by default.
+
 ## Demo
 
 ### Suggestions
