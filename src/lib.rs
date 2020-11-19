@@ -3,7 +3,7 @@
 //! User friendly errors from source data.
 
 pub use crate::{
-    formatter::{PlainTextFormatter, SourceErrorFormatter, Styler},
+    formatter::{AnsiColorFormatter, PlainTextFormatter, SourceErrorFormatter, Styler},
     model::{
         ErrorCode, Expr, ExprHighlighted, HighlightLevel, Severity, SourceError, SourceHighlighted,
         SourceRefHint, Span, Suggestion,

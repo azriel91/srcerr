@@ -459,13 +459,13 @@ where
         surround_with_dots: bool,
     ) -> Result<(), io::Error> {
         // Line numbers and margin
+        S::margin_begin(buffer)?;
         write!(
             buffer,
             " {line_number:^width$} ",
             line_number = current_line_number,
             width = line_number_digits,
         )?;
-        S::margin_begin(buffer)?;
         write!(buffer, "{}", S::MARGIN_LINE)?;
         S::margin_end(buffer)?;
 
