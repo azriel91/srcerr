@@ -9,16 +9,16 @@ where
     const NEWLINE: &'static str = "\n";
     /// `&str` to use for the margin line.
     const MARGIN_LINE: &'static str = "|";
-    /// `&str` to use for the error marker.
+    /// `&str` to use for the highlight marker.
     ///
     /// This is assumed to render as 1 character wide, though it may be made up
     /// of multiple characters.
-    const ERROR_MARKER: &'static str = "^";
-    /// `&str` to use for the vertical arrow body for an error marker.
+    const HIGHLIGHT_MARKER: &'static str = "^";
+    /// `&str` to use for the vertical arrow body for an highlight marker.
     ///
     /// This is assumed to render as 1 character wide, though it may be made up
     /// of multiple characters.
-    const ERROR_MARKER_VERTICAL: &'static str = "|";
+    const HIGHLIGHT_MARKER_VERTICAL: &'static str = "|";
     /// `&str` to use for the hint marker.
     ///
     /// This is assumed to render as 1 character wide, though it may be made up
@@ -45,18 +45,22 @@ where
     /// Writes a token after writing the error description.
     fn error_description_end(buffer: &mut W) -> Result<(), io::Error>;
 
-    /// Writes a token before writing all of the [error markers].
+    /// Writes a token before writing all of the [highlight markers].
     ///
-    /// [error markers]: `Styler::ERROR_MARKER`
+    /// [highlight markers]: `Styler::HIGHLIGHT_MARKER`
     fn error_marker_begin(buffer: &mut W) -> Result<(), io::Error>;
-    /// Writes a token after writing all of the [error markers].
+    /// Writes a token after writing all of the [highlight markers].
     ///
-    /// [error markers]: `Styler::ERROR_MARKER`
+    /// [highlight markers]: `Styler::HIGHLIGHT_MARKER`
     fn error_marker_end(buffer: &mut W) -> Result<(), io::Error>;
 
-    /// Writes a token before writing all of the hint markers.
+    /// Writes a token before writing all of the [hint markers].
+    ///
+    /// [highlight markers]: `Styler::HINT_MARKER`
     fn hint_marker_begin(buffer: &mut W) -> Result<(), io::Error>;
-    /// Writes a token after writing all of the hint markers.
+    /// Writes a token after writing all of the [hint markers].
+    ///
+    /// [highlight markers]: `Styler::HINT_MARKER`
     fn hint_marker_end(buffer: &mut W) -> Result<(), io::Error>;
 
     /// Writes a token before writing an error hint.
@@ -77,6 +81,15 @@ where
     fn path_begin(buffer: &mut W) -> Result<(), io::Error>;
     /// Writes a token after writing the source path.
     fn path_end(buffer: &mut W) -> Result<(), io::Error>;
+
+    /// Writes a token before writing all of the [highlight markers].
+    ///
+    /// [highlight markers]: `Styler::HIGHLIGHT_MARKER`
+    fn warning_marker_begin(buffer: &mut W) -> Result<(), io::Error>;
+    /// Writes a token after writing all of the [highlight markers].
+    ///
+    /// [highlight markers]: `Styler::HIGHLIGHT_MARKER`
+    fn warning_marker_end(buffer: &mut W) -> Result<(), io::Error>;
 
     /// Writes a token before writing the warning tag -- `warning[` and `]`.
     ///

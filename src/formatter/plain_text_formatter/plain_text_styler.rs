@@ -90,6 +90,14 @@ where
         Ok(())
     }
 
+    fn warning_marker_begin(_buffer: &mut W) -> Result<(), io::Error> {
+        Ok(())
+    }
+
+    fn warning_marker_end(_buffer: &mut W) -> Result<(), io::Error> {
+        Ok(())
+    }
+
     fn warning_tag_begin(_buffer: &mut W) -> Result<(), io::Error> {
         Ok(())
     }

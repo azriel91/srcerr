@@ -5,8 +5,8 @@
 pub use crate::{
     formatter::{PlainTextFormatter, SourceErrorFormatter, Styler},
     model::{
-        ErrorCode, Expr, ExprHighlighted, Severity, SourceError, SourceHighlighted, SourceRefHint,
-        Span, Suggestion,
+        ErrorCode, Expr, ExprHighlighted, HighlightLevel, Severity, SourceError, SourceHighlighted,
+        SourceRefHint, Span, Suggestion,
     },
 };
 

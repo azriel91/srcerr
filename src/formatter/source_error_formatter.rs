@@ -5,8 +5,8 @@ use std::{
 };
 
 use crate::{
-    ErrorCode, ExprHighlighted, Severity, SourceError, SourceHighlighted, SourceRefHint, Styler,
-    Suggestion,
+    ErrorCode, ExprHighlighted, HighlightLevel, Severity, SourceError, SourceHighlighted,
+    SourceRefHint, Styler, Suggestion,
 };
 
 const DOTS_PREFIX: &str = ".. ";
@@ -90,7 +90,7 @@ where
                 write!(buffer, "]")?;
                 S::error_tag_end(buffer)?;
             }
-            Severity::Warn => {
+            Severity::Warning => {
                 S::warning_tag_begin(buffer)?;
                 write!(buffer, "warning[")?;
                 S::warning_tag_end(buffer)?;
@@ -185,6 +185,7 @@ where
         Self::fmt_source_highlighted(
             buffer,
             &source_error.invalid_source,
+            HighlightLevel::from(source_error.severity),
             line_number_digits,
             "^",
         )
@@ -207,6 +208,7 @@ where
                 }
                 Suggestion::SourceRefHint(source_ref_hint) => Self::fmt_suggestion_source_ref_hint(
                     buffer,
+                    HighlightLevel::Info,
                     source_ref_hint,
                     line_number_digits,
                 ),
@@ -260,6 +262,7 @@ where
     /// ```
     fn fmt_suggestion_source_ref_hint<'path, 'source>(
         buffer: &mut W,
+        highlight_level: HighlightLevel,
         source_ref_hint: &SourceRefHint<'path, 'source>,
         line_number_digits: usize,
     ) -> Result<(), io::Error> {
@@ -275,7 +278,13 @@ where
         write!(buffer, "{}", S::NEWLINE)?;
 
         Self::fmt_path(buffer, &source_ref_hint.source_ref)?;
-        Self::fmt_source_highlighted(buffer, &source_ref_hint.source_ref, line_number_digits, "-")?;
+        Self::fmt_source_highlighted(
+            buffer,
+            &source_ref_hint.source_ref,
+            highlight_level,
+            line_number_digits,
+            "-",
+        )?;
 
         Ok(())
     }
@@ -311,6 +320,7 @@ where
     fn fmt_source_highlighted<'path, 'source>(
         buffer: &mut W,
         source_highlighted: &SourceHighlighted<'path, 'source>,
+        highlight_level: HighlightLevel,
         line_number_digits: usize,
         marker: &str,
     ) -> Result<(), io::Error> {
@@ -362,6 +372,7 @@ where
 
                         Self::fmt_expr_highlighted(
                             buffer,
+                            highlight_level,
                             expr,
                             line_number_digits,
                             column_offset,
@@ -373,6 +384,7 @@ where
                         if is_partial_line {
                             Self::fmt_expr_column_hint(
                                 buffer,
+                                highlight_level,
                                 line_number_digits,
                                 column_offset,
                                 expr.inner.col_number,
@@ -479,6 +491,7 @@ where
 
     fn fmt_expr_highlighted<'source>(
         buffer: &mut W,
+        highlight_level: HighlightLevel,
         expr: &ExprHighlighted<'source>,
         line_number_digits: usize,
         context_col_offset: usize,
@@ -500,16 +513,16 @@ where
         S::margin_end(buffer)?;
         write!(buffer, " ")?;
 
-        // TODO: Severity.
         // TODO: Don't include the padding in the formatting.
-        S::error_marker_begin(buffer)?;
+        let (style_marker_begin, style_marker_end) = Self::style_marker_fns(highlight_level);
+        style_marker_begin(buffer)?;
         write!(
             buffer,
             "{marker:>pad$}",
             marker = marker,
             pad = expr.inner.col_number - context_col_offset + expr_char_count,
         )?;
-        S::error_marker_end(buffer)?;
+        style_marker_end(buffer)?;
 
         S::hint_error_begin(buffer)?;
         if let Some(hint) = expr.hint.as_ref() {
@@ -524,6 +537,7 @@ where
 
     fn fmt_expr_column_hint(
         buffer: &mut W,
+        highlight_level: HighlightLevel,
         line_number_digits: usize,
         context_col_offset: usize,
         expr_col_number: usize,
@@ -544,14 +558,14 @@ where
             space = " ",
             pad = expr_col_number - context_col_offset,
         )?;
-        // TODO: Severity.
-        S::error_marker_begin(buffer)?;
+        let (style_marker_begin, style_marker_end) = Self::style_marker_fns(highlight_level);
+        style_marker_begin(buffer)?;
         write!(
             buffer,
             "{arrow_body}",
-            arrow_body = S::ERROR_MARKER_VERTICAL
+            arrow_body = S::HIGHLIGHT_MARKER_VERTICAL
         )?;
-        S::error_marker_end(buffer)?;
+        style_marker_end(buffer)?;
         write!(buffer, "{}", S::NEWLINE)?;
 
         // Column number
@@ -575,5 +589,18 @@ where
         //
         // +1 is because error codes should generally start from 1, not 0.
         (value_max as f32).log10().floor() as usize + 1
+    }
+
+    fn style_marker_fns(
+        highlight_level: HighlightLevel,
+    ) -> (
+        fn(&mut W) -> Result<(), io::Error>,
+        fn(&mut W) -> Result<(), io::Error>,
+    ) {
+        match highlight_level {
+            HighlightLevel::Error => (S::error_marker_begin, S::error_marker_end),
+            HighlightLevel::Warning => (S::warning_marker_begin, S::warning_marker_end),
+            HighlightLevel::Info => (S::hint_marker_begin, S::hint_marker_end),
+        }
     }
 }
