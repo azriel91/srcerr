@@ -10,5 +10,5 @@ pub enum Severity {
     ///
     /// Recommended for informatives such as deprecation notices and convention
     /// changes.
-    Warn,
+    Warning,
 }

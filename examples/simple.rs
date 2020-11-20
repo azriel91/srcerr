@@ -1,7 +1,7 @@
 use std::{borrow::Cow, io, ops::RangeInclusive, path::Path};
 
 use srcerr::{
-    ErrorCode, Expr, ExprHighlighted, PlainTextFormatter, Severity, SourceError, SourceHighlighted,
+    DefaultFormatter, ErrorCode, Expr, ExprHighlighted, Severity, SourceError, SourceHighlighted,
     Span, Suggestion,
 };
 
@@ -16,8 +16,8 @@ fn main() {
     let value_out_of_range = value_out_of_range(&path, content);
     let string_too_long = string_too_long(&path, content);
 
-    println!("{}", PlainTextFormatter::fmt(&value_out_of_range));
-    println!("{}", PlainTextFormatter::fmt(&string_too_long));
+    println!("{}", DefaultFormatter::fmt(&value_out_of_range));
+    println!("{}", DefaultFormatter::fmt(&string_too_long));
 }
 
 fn value_out_of_range<'path, 'source>(

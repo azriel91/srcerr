@@ -6,6 +6,10 @@
 
 User friendly errors from source data.
 
+This crate provides a `SourceError` type, which is formatted like Rust's compiler errors. Consumers are responsible for providing the correct byte and character indices, and line and column numbers.
+
+Color support is enabled by default.
+
 ## Demo
 
 ### Suggestions
@@ -51,6 +55,7 @@ cargo run --example simple
 cargo run --example source_ref_hint
 cargo run --example source_ref_hint_inline
 cargo run --example long_expr_context
+cargo run --example html > /tmp/index.html
 ```
 
 ## License

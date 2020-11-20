@@ -1,13 +1,13 @@
 use crate::SourceErrorFormatter;
 
-pub use self::plain_text_styler::PlainTextStyler;
+pub use self::ansi_color_styler::AnsiColorStyler;
 
-mod plain_text_styler;
+mod ansi_color_styler;
 
-/// Formats a [`SourceError`] as plain text.
+/// Formats a [`SourceError`] with ANSI colors.
 ///
 /// [`SourceError`]: `crate::SourceError`
-pub type PlainTextFormatter<W> = SourceErrorFormatter<W, PlainTextStyler>;
+pub type AnsiColorFormatter<W> = SourceErrorFormatter<W, AnsiColorStyler>;
 
 #[cfg(test)]
 mod tests {
@@ -20,78 +20,81 @@ mod tests {
         Span, Suggestion,
     };
 
-    use super::PlainTextFormatter;
+    use super::AnsiColorFormatter;
 
     #[test]
     fn formats_single_line_expr() {
-        let path = Path::new("plain_text_formatter/formats_single_line_expr.toml");
+        let path = Path::new("ansi_color_formatter/formats_single_line_expr.toml");
         let content = "\
             [simple]\n\
             i32_value = -1\n\
             ";
         let value_out_of_range = value_out_of_range(&path, content);
 
-        let formatted_err = PlainTextFormatter::fmt(&value_out_of_range);
+        let formatted_err = AnsiColorFormatter::fmt(&value_out_of_range);
 
         assert_eq!(
-            r#"error[E1]: `-1` is out of the range: `1..3`.
-  --> plain_text_formatter/formats_single_line_expr.toml:2:13
-   |
- 2 | i32_value = -1
-   |             ^^
-   = note: expected one of: `1`, `2`, `3`
-"#,
+            "\
+\u{1b}[1;38;5;9merror[\u{1b}[0m\u{1b}[1mE1\u{1b}[0m\u{1b}[1;38;5;9m]\u{1b}[0m\u{1b}[1m: `-1` is out of the range: `1..3`.\u{1b}[0m
+  \u{1b}[1;38;5;12m-->\u{1b}[0m \u{1b}[1mansi_color_formatter/formats_single_line_expr.toml\u{1b}[0m:\u{1b}[1m2\u{1b}[0m:\u{1b}[1m13\u{1b}[0m
+   \u{1b}[1;38;5;12m|\u{1b}[0m
+\u{1b}[1;38;5;12m 2 |\u{1b}[0m i32_value = -1
+   \u{1b}[1;38;5;12m|\u{1b}[0m \u{1b}[1;38;5;9m            ^^\u{1b}[0m\u{1b}[1;38;5;12m\u{1b}[0m
+\u{1b}[1;38;5;12m   = note: expected one of: `1`, `2`, `3`\u{1b}[0m
+",
             formatted_err
         );
     }
 
     #[test]
     fn zero_pads_error_code_log_10_exact() {
-        let path = Path::new("plain_text_formatter/zero_pads_error_code_log_10_exact.toml");
+        let path = Path::new("ansi_color_formatter/zero_pads_error_code_log_10_exact.toml");
         let content = "\
             [simple]\n\
             i32_value = -1\n\
             ";
         let value_out_of_range = error_code_log_10_exact(&path, content);
 
-        let formatted_err = PlainTextFormatter::fmt(&value_out_of_range);
+        let formatted_err = AnsiColorFormatter::fmt(&value_out_of_range);
 
         assert_eq!(
-            r#"error[E0091]: `-1` is out of range.
-  --> plain_text_formatter/zero_pads_error_code_log_10_exact.toml:2:13
-   |
- 2 | i32_value = -1
-   |             ^^
-"#,
+            "\
+\u{1b}[1;38;5;9merror[\u{1b}[0m\u{1b}[1mE0091\u{1b}[0m\u{1b}[1;38;5;9m]\u{1b}[0m\u{1b}[1m: `-1` is out of range.\u{1b}[0m
+  \u{1b}[1;38;5;12m-->\u{1b}[0m \u{1b}[1mansi_color_formatter/zero_pads_error_code_log_10_exact.toml\u{1b}[0m:\u{1b}[1m2\u{1b}[0m:\u{1b}[1m13\u{1b}[0m
+   \u{1b}[1;38;5;12m|\u{1b}[0m
+\u{1b}[1;38;5;12m 2 |\u{1b}[0m i32_value = -1
+   \u{1b}[1;38;5;12m|\u{1b}[0m \u{1b}[1;38;5;9m            ^^\u{1b}[0m\u{1b}[1;38;5;12m\u{1b}[0m
+",
             formatted_err
         );
     }
 
     #[test]
     fn zero_pads_error_code_log_10_inexact() {
-        let path = Path::new("plain_text_formatter/zero_pads_error_code_log_10_inexact.toml");
+        let path = Path::new("ansi_color_formatter/zero_pads_error_code_log_10_inexact.toml");
         let content = "\
             [simple]\n\
             i32_value = -1\n\
             ";
         let value_out_of_range = error_code_log_10_inexact(&path, content);
 
-        let formatted_err = PlainTextFormatter::fmt(&value_out_of_range);
+        let formatted_err = AnsiColorFormatter::fmt(&value_out_of_range);
 
         assert_eq!(
-            r#"error[E0091]: `-1` is out of range.
-  --> plain_text_formatter/zero_pads_error_code_log_10_inexact.toml:2:13
-   |
- 2 | i32_value = -1
-   |             ^^
-"#,
+            "\
+\u{1b}[1;38;5;9merror[\u{1b}[0m\u{1b}[1mE0091\u{1b}[0m\u{1b}[1;38;5;9m]\u{1b}[0m\u{1b}[1m: `-1` is out of range.\u{1b}[0m
+  \u{1b}[1;38;5;12m-->\u{1b}[0m \u{1b}[1mansi_color_formatter/zero_pads_error_code_log_10_inexact.toml\u{1b}[0m:\u{1b}[1m2\u{1b}[0m:\u{1b}[1m13\u{1b}[0m
+   \u{1b}[1;38;5;12m|\u{1b}[0m
+\u{1b}[1;38;5;12m 2 |\u{1b}[0m i32_value = -1
+   \u{1b}[1;38;5;12m|\u{1b}[0m \u{1b}[1;38;5;9m            ^^\u{1b}[0m\u{1b}[1;38;5;12m\u{1b}[0m
+",
             formatted_err
         );
     }
 
     #[test]
     fn formats_multi_line_expr_context_before() {
-        let path = Path::new("plain_text_formatter/formats_multi_line_expr_context_before.toml");
+        let path = Path::new("ansi_color_formatter/formats_multi_line_expr_context_before.toml");
         let content = "\
             [simple]\n\
             i32_value = -1\n\
@@ -99,23 +102,24 @@ mod tests {
         let multi_line_expr_context_before_error =
             multi_line_expr_context_before_error(&path, content);
 
-        let formatted_err = PlainTextFormatter::fmt(&multi_line_expr_context_before_error);
+        let formatted_err = AnsiColorFormatter::fmt(&multi_line_expr_context_before_error);
 
         assert_eq!(
-            r#"error[E1]: `-1` is out of the range: `1..3`.
-  --> plain_text_formatter/formats_multi_line_expr_context_before.toml:2:13
-   |
- 1 | [simple]
- 2 | i32_value = -1
-   |             ^^
-"#,
+            "\
+\u{1b}[1;38;5;9merror[\u{1b}[0m\u{1b}[1mE1\u{1b}[0m\u{1b}[1;38;5;9m]\u{1b}[0m\u{1b}[1m: `-1` is out of the range: `1..3`.\u{1b}[0m
+  \u{1b}[1;38;5;12m-->\u{1b}[0m \u{1b}[1mansi_color_formatter/formats_multi_line_expr_context_before.toml\u{1b}[0m:\u{1b}[1m2\u{1b}[0m:\u{1b}[1m13\u{1b}[0m
+   \u{1b}[1;38;5;12m|\u{1b}[0m
+\u{1b}[1;38;5;12m 1 |\u{1b}[0m [simple]
+\u{1b}[1;38;5;12m 2 |\u{1b}[0m i32_value = -1
+   \u{1b}[1;38;5;12m|\u{1b}[0m \u{1b}[1;38;5;9m            ^^\u{1b}[0m\u{1b}[1;38;5;12m\u{1b}[0m
+",
             formatted_err
         );
     }
 
     #[test]
     fn formats_multi_line_expr_context_both() {
-        let path = Path::new("plain_text_formatter/formats_multi_line_expr_context_both.yaml");
+        let path = Path::new("ansi_color_formatter/formats_multi_line_expr_context_both.yaml");
         let content = r#"---
 available:
 - abc
@@ -125,32 +129,33 @@ chosen: "ghi"
 "#;
         let multi_line_expr_context_both_error = multi_line_expr_context_both_error(&path, content);
 
-        let formatted_err = PlainTextFormatter::fmt(&multi_line_expr_context_both_error);
+        let formatted_err = AnsiColorFormatter::fmt(&multi_line_expr_context_both_error);
 
         assert_eq!(
-            r#"error[E100]: `chosen` value `ghi` is invalid.
-  --> plain_text_formatter/formats_multi_line_expr_context_both.yaml:6:9
-   |
- 6 | chosen: "ghi"
-   |         ^^^^^
-   = note: expected one of: `abc`, `def`
+            "\
+\u{1b}[1;38;5;9merror[\u{1b}[0m\u{1b}[1mE100\u{1b}[0m\u{1b}[1;38;5;9m]\u{1b}[0m\u{1b}[1m: `chosen` value `ghi` is invalid.\u{1b}[0m
+  \u{1b}[1;38;5;12m-->\u{1b}[0m \u{1b}[1mansi_color_formatter/formats_multi_line_expr_context_both.yaml\u{1b}[0m:\u{1b}[1m6\u{1b}[0m:\u{1b}[1m9\u{1b}[0m
+   \u{1b}[1;38;5;12m|\u{1b}[0m
+\u{1b}[1;38;5;12m 6 |\u{1b}[0m chosen: \"ghi\"
+   \u{1b}[1;38;5;12m|\u{1b}[0m \u{1b}[1;38;5;9m        ^^^^^\u{1b}[0m\u{1b}[1;38;5;12m\u{1b}[0m
+\u{1b}[1;38;5;12m   = note: expected one of: `abc`, `def`\u{1b}[0m
 
-help: `chosen` value must come from one of `available` values:
-  --> plain_text_formatter/formats_multi_line_expr_context_both.yaml:2:1
-   |
- 2 | available:
- 3 | - abc
- 4 | - def
-   |
-   = hint: first defined here
-"#,
+\u{1b}[1;38;5;12mhelp: `chosen` value must come from one of `available` values:\u{1b}[0m
+  \u{1b}[1;38;5;12m-->\u{1b}[0m \u{1b}[1mansi_color_formatter/formats_multi_line_expr_context_both.yaml\u{1b}[0m:\u{1b}[1m2\u{1b}[0m:\u{1b}[1m1\u{1b}[0m
+   \u{1b}[1;38;5;12m|\u{1b}[0m
+\u{1b}[1;38;5;12m 2 |\u{1b}[0m available:
+\u{1b}[1;38;5;12m 3 |\u{1b}[0m - abc
+\u{1b}[1;38;5;12m 4 |\u{1b}[0m - def
+   \u{1b}[1;38;5;12m|\u{1b}[0m
+   \u{1b}[1;38;5;12m= hint: first defined here\u{1b}[0m
+",
             formatted_err
         );
     }
 
     #[test]
     fn formats_multi_line_expr_context_expr() {
-        let path = Path::new("plain_text_formatter/formats_multi_line_expr_context_expr.yaml");
+        let path = Path::new("ansi_color_formatter/formats_multi_line_expr_context_expr.yaml");
         let content = r#"---
 available:
 - abc
@@ -160,71 +165,74 @@ chosen: "ghi"
 "#;
         let multi_line_expr_context_expr_error = multi_line_expr_context_expr_error(&path, content);
 
-        let formatted_err = PlainTextFormatter::fmt(&multi_line_expr_context_expr_error);
+        let formatted_err = AnsiColorFormatter::fmt(&multi_line_expr_context_expr_error);
 
         assert_eq!(
-            r#"error[E100]: `chosen` value `ghi` is invalid.
-  --> plain_text_formatter/formats_multi_line_expr_context_expr.yaml:6:9
-   |
- 6 | chosen: "ghi"
-   |         ^^^^^
-   = note: expected one of: `abc`, `def`
+            "\
+\u{1b}[1;38;5;9merror[\u{1b}[0m\u{1b}[1mE100\u{1b}[0m\u{1b}[1;38;5;9m]\u{1b}[0m\u{1b}[1m: `chosen` value `ghi` is invalid.\u{1b}[0m
+  \u{1b}[1;38;5;12m-->\u{1b}[0m \u{1b}[1mansi_color_formatter/formats_multi_line_expr_context_expr.yaml\u{1b}[0m:\u{1b}[1m6\u{1b}[0m:\u{1b}[1m9\u{1b}[0m
+   \u{1b}[1;38;5;12m|\u{1b}[0m
+\u{1b}[1;38;5;12m 6 |\u{1b}[0m chosen: \"ghi\"
+   \u{1b}[1;38;5;12m|\u{1b}[0m \u{1b}[1;38;5;9m        ^^^^^\u{1b}[0m\u{1b}[1;38;5;12m\u{1b}[0m
+\u{1b}[1;38;5;12m   = note: expected one of: `abc`, `def`\u{1b}[0m
 
-help: `chosen` value must come from one of `available` values:
-  --> plain_text_formatter/formats_multi_line_expr_context_expr.yaml:2:1
-   |
- 2 | available:
-   | ---------- hint: first defined here
- 3 | - abc
- 4 | - def
-   |
-"#,
+\u{1b}[1;38;5;12mhelp: `chosen` value must come from one of `available` values:\u{1b}[0m
+  \u{1b}[1;38;5;12m-->\u{1b}[0m \u{1b}[1mansi_color_formatter/formats_multi_line_expr_context_expr.yaml\u{1b}[0m:\u{1b}[1m2\u{1b}[0m:\u{1b}[1m1\u{1b}[0m
+   \u{1b}[1;38;5;12m|\u{1b}[0m
+\u{1b}[1;38;5;12m 2 |\u{1b}[0m available:
+   \u{1b}[1;38;5;12m|\u{1b}[0m \u{1b}[1;38;5;12m----------\u{1b}[0m\u{1b}[1;38;5;12m hint: first defined here\u{1b}[0m
+\u{1b}[1;38;5;12m 3 |\u{1b}[0m - abc
+\u{1b}[1;38;5;12m 4 |\u{1b}[0m - def
+   \u{1b}[1;38;5;12m|\u{1b}[0m
+",
             formatted_err
         );
     }
 
     #[test]
     fn formats_long_line_expr_context_expr() {
-        let path = Path::new("plain_text_formatter/formats_long_line_expr_context_expr.json");
+        let path = Path::new("ansi_color_formatter/formats_long_line_expr_context_expr.json");
         let content = r#"{"a":0,"b":1,"c":2,"d":3,"e":4,"f":5,"g":6,"h":7,"i":8,"j":9,"k":10,"l":11,"m":12,"n":13,"o":14,"p":150,"q":16,"r":17,"s":18,"t":19,"u":20,"v":21,"w":22,"x":23,"y":24,"z":25}"#;
         let long_line_expr_context_expr = long_line_expr_context_expr(&path, content);
 
-        let formatted_err = PlainTextFormatter::fmt(&long_line_expr_context_expr);
+        let formatted_err = AnsiColorFormatter::fmt(&long_line_expr_context_expr);
 
         assert_eq!(
-            r#"error[E09]: Value `150` is invalid.
-  --> plain_text_formatter/formats_long_line_expr_context_expr.json:1:101
-   |
- 1 | .. "p":150, ..
-   |        ^^^
-   |        |
+            "\
+\u{1b}[1;38;5;9merror[\u{1b}[0m\u{1b}[1mE09\u{1b}[0m\u{1b}[1;38;5;9m]\u{1b}[0m\u{1b}[1m: Value `150` is invalid.\u{1b}[0m
+  \u{1b}[1;38;5;12m-->\u{1b}[0m \u{1b}[1mansi_color_formatter/formats_long_line_expr_context_expr.json\u{1b}[0m:\u{1b}[1m1\u{1b}[0m:\u{1b}[1m101\u{1b}[0m
+   \u{1b}[1;38;5;12m|\u{1b}[0m
+\u{1b}[1;38;5;12m 1 |\u{1b}[0m .. \"p\":150, ..
+   \u{1b}[1;38;5;12m|\u{1b}[0m \u{1b}[1;38;5;9m       ^^^\u{1b}[0m\u{1b}[1;38;5;12m\u{1b}[0m
+   \u{1b}[1;38;5;12m|\u{1b}[0m        \u{1b}[1;38;5;9m|\u{1b}[0m
    |        101
-   |
-   = hint: expected value to be less than 26
-"#,
+   \u{1b}[1;38;5;12m|\u{1b}[0m
+   \u{1b}[1;38;5;12m= hint: expected value to be less than 26\u{1b}[0m
+",
             formatted_err
         );
     }
 
     #[test]
     fn path_arrow_moves_with_line_number_margin() {
-        let path = Path::new("plain_text_formatter/path_arrow_moves_with_line_number_margin.toml");
+        let path = Path::new("ansi_color_formatter/path_arrow_moves_with_line_number_margin.toml");
         let content = "\
             [simple]\n\
             i32_value = -1\n\
             ";
         let value_out_of_range_high_line = value_out_of_range_high_line(&path, content);
 
-        let formatted_err = PlainTextFormatter::fmt(&value_out_of_range_high_line);
+        let formatted_err = AnsiColorFormatter::fmt(&value_out_of_range_high_line);
 
         assert_eq!(
-            r#"error[E1]: `-1` is out of the range: `1..3`.
-    --> plain_text_formatter/path_arrow_moves_with_line_number_margin.toml:201:13
-     |
- 201 | i32_value = -1
-     |             ^^
-     = note: expected one of: `1`, `2`, `3`
-"#,
+            "\
+\u{1b}[1;38;5;9merror[\u{1b}[0m\u{1b}[1mE1\u{1b}[0m\u{1b}[1;38;5;9m]\u{1b}[0m\u{1b}[1m: `-1` is out of the range: `1..3`.\u{1b}[0m
+    \u{1b}[1;38;5;12m-->\u{1b}[0m \u{1b}[1mansi_color_formatter/path_arrow_moves_with_line_number_margin.toml\u{1b}[0m:\u{1b}[1m201\u{1b}[0m:\u{1b}[1m13\u{1b}[0m
+     \u{1b}[1;38;5;12m|\u{1b}[0m
+\u{1b}[1;38;5;12m 201 |\u{1b}[0m i32_value = -1
+     \u{1b}[1;38;5;12m|\u{1b}[0m \u{1b}[1;38;5;9m            ^^\u{1b}[0m\u{1b}[1;38;5;12m\u{1b}[0m
+\u{1b}[1;38;5;12m     = note: expected one of: `1`, `2`, `3`\u{1b}[0m
+",
             formatted_err
         );
     }
