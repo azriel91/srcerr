@@ -25,7 +25,13 @@ fn main() -> Result<(), io::Error> {
     let value_out_of_range = value_out_of_range(&path, &content);
 
     println!(
-        "<div style=\"font-family: monospace;\">{}</div>",
+        r#"<body style="margin: 0 0 0 0;"><div style="
+            font-family: monospace;
+            color: #ffffff;
+            background-color: #000000;
+            padding: 10 10 10 10;
+            width: calc(100% - 20);
+            ">{}</div></body>"#,
         HtmlFormatter::fmt(&value_out_of_range)
     );
 
