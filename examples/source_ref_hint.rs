@@ -2,7 +2,7 @@ use std::{borrow::Cow, io, path::Path};
 
 use srcerr::{
     DefaultFormatter, ErrorCode, Expr, ExprHighlighted, Severity, SourceError, SourceHighlighted,
-    SourceRefHint, Span, Suggestion,
+    SourceRefHint, Suggestion,
 };
 
 const SOURCE_REF_HINT_YAML: &str = include_str!("source_ref_hint.yaml");
@@ -27,7 +27,6 @@ fn value_out_of_range<'path, 'source>(
     };
     let expr = {
         let inner = Expr {
-            span: Span { start: 44, end: 49 },
             line_number: 6,
             col_number: 9,
             value: Cow::Borrowed(&content[44..49]),
@@ -36,7 +35,6 @@ fn value_out_of_range<'path, 'source>(
     };
     let expr_context = {
         let inner = Expr {
-            span: Span { start: 36, end: 49 },
             line_number: 6,
             col_number: 1,
             value: Cow::Borrowed(&content[36..49]),
@@ -58,7 +56,6 @@ fn value_out_of_range<'path, 'source>(
     let suggestion_1 = {
         let expr_context = {
             let inner = Expr {
-                span: Span { start: 4, end: 34 },
                 line_number: 2,
                 col_number: 1,
                 value: Cow::Borrowed(&content[4..34]),

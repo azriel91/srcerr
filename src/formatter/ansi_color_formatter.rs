@@ -17,7 +17,7 @@ mod tests {
 
     use crate::{
         ErrorCode, Expr, ExprHighlighted, Severity, SourceError, SourceHighlighted, SourceRefHint,
-        Span, Suggestion,
+        Suggestion,
     };
 
     use super::AnsiColorFormatter;
@@ -453,7 +453,6 @@ chosen: "ghi"
 
     fn expr_toml_single<'source>(content: &'source str) -> ExprHighlighted<'source> {
         let inner = Expr {
-            span: Span { start: 21, end: 23 },
             line_number: 2,
             col_number: 13,
             value: Cow::Borrowed(&content[21..23]),
@@ -463,7 +462,6 @@ chosen: "ghi"
 
     fn expr_toml_single_high_line<'source>(content: &'source str) -> ExprHighlighted<'source> {
         let inner = Expr {
-            span: Span { start: 21, end: 23 },
             line_number: 201,
             col_number: 13,
             value: Cow::Borrowed(&content[21..23]),
@@ -473,7 +471,6 @@ chosen: "ghi"
 
     fn expr_yaml_single<'source>(content: &'source str) -> ExprHighlighted<'source> {
         let inner = Expr {
-            span: Span { start: 36, end: 41 },
             line_number: 6,
             col_number: 9,
             value: Cow::Borrowed(&content[36..41]),
@@ -483,7 +480,6 @@ chosen: "ghi"
 
     fn expr_context_before<'source>(content: &'source str) -> ExprHighlighted<'source> {
         let inner = Expr {
-            span: Span { start: 0, end: 23 },
             line_number: 1,
             col_number: 1,
             value: Cow::Borrowed(&content[0..23]),
@@ -493,7 +489,6 @@ chosen: "ghi"
 
     fn expr_context_single<'source>(content: &'source str) -> ExprHighlighted<'source> {
         let inner = Expr {
-            span: Span { start: 9, end: 23 },
             line_number: 2,
             col_number: 1,
             value: Cow::Borrowed(&content[9..23]),
@@ -503,7 +498,6 @@ chosen: "ghi"
 
     fn expr_context_single_high_line<'source>(content: &'source str) -> ExprHighlighted<'source> {
         let inner = Expr {
-            span: Span { start: 9, end: 23 },
             line_number: 201,
             col_number: 1,
             value: Cow::Borrowed(&content[9..23]),
@@ -513,7 +507,6 @@ chosen: "ghi"
 
     fn expr_context_yaml_single<'source>(content: &'source str) -> ExprHighlighted<'source> {
         let inner = Expr {
-            span: Span { start: 28, end: 41 },
             line_number: 6,
             col_number: 1,
             value: Cow::Borrowed(&content[28..41]),
@@ -526,7 +519,6 @@ chosen: "ghi"
         hint: Option<Cow<'source, str>>,
     ) -> ExprHighlighted<'source> {
         let inner = Expr {
-            span: Span { start: 4, end: 14 },
             line_number: 2,
             col_number: 1,
             value: Cow::Borrowed(&content[4..14]),
@@ -536,7 +528,6 @@ chosen: "ghi"
 
     fn expr_context_hint_yaml_both<'source>(content: &'source str) -> ExprHighlighted<'source> {
         let inner = Expr {
-            span: Span { start: 4, end: 26 },
             line_number: 2,
             col_number: 1,
             value: Cow::Borrowed(&content[4..26]),
@@ -546,10 +537,6 @@ chosen: "ghi"
 
     fn expr_json_single<'source>(content: &'source str) -> ExprHighlighted<'source> {
         let inner = Expr {
-            span: Span {
-                start: 100,
-                end: 103,
-            },
             line_number: 1,
             col_number: 101,
             value: Cow::Borrowed(&content[100..103]),
@@ -559,10 +546,6 @@ chosen: "ghi"
 
     fn expr_context_json_single<'source>(content: &'source str) -> ExprHighlighted<'source> {
         let inner = Expr {
-            span: Span {
-                start: 96,
-                end: 104,
-            },
             line_number: 1,
             col_number: 97,
             value: Cow::Borrowed(&content[96..104]),

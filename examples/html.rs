@@ -7,7 +7,7 @@ use std::{
 };
 
 use srcerr::{
-    ErrorCode, Expr, ExprHighlighted, Severity, SourceError, SourceHighlighted, Span, Suggestion,
+    ErrorCode, Expr, ExprHighlighted, Severity, SourceError, SourceHighlighted, Suggestion,
 };
 
 use crate::formatter::HtmlFormatter;
@@ -47,10 +47,6 @@ fn value_out_of_range<'path, 'source>(
     };
     let expr = {
         let inner = Expr {
-            span: Span {
-                start: 100,
-                end: 103,
-            },
             line_number: 1,
             col_number: 101,
             value: Cow::Borrowed(&content[100..103]),
@@ -59,10 +55,6 @@ fn value_out_of_range<'path, 'source>(
     };
     let expr_context = {
         let inner = Expr {
-            span: Span {
-                start: 96,
-                end: 104,
-            },
             line_number: 1,
             col_number: 97,
             value: Cow::Borrowed(&content[96..104]),

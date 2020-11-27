@@ -2,7 +2,7 @@ use std::{borrow::Cow, io, ops::RangeInclusive, path::Path};
 
 use srcerr::{
     DefaultFormatter, ErrorCode, Expr, ExprHighlighted, Severity, SourceError, SourceHighlighted,
-    Span, Suggestion,
+    Suggestion,
 };
 
 const SIMPLE_TOML: &str = include_str!("simple.toml");
@@ -31,7 +31,6 @@ fn value_out_of_range<'path, 'source>(
     };
     let expr = {
         let inner = Expr {
-            span: Span { start: 21, end: 23 },
             line_number: 2,
             col_number: 13,
             value: Cow::Borrowed(&content[21..23]),
@@ -40,7 +39,6 @@ fn value_out_of_range<'path, 'source>(
     };
     let expr_context = {
         let inner = Expr {
-            span: Span { start: 9, end: 23 },
             line_number: 2,
             col_number: 1,
             value: Cow::Borrowed(&content[9..23]),
@@ -78,7 +76,6 @@ fn string_too_long<'path, 'source>(
     };
     let expr = {
         let inner = Expr {
-            span: Span { start: 39, end: 48 },
             line_number: 3,
             col_number: 16,
             value: Cow::Borrowed(&content[39..48]),
@@ -87,7 +84,6 @@ fn string_too_long<'path, 'source>(
     };
     let expr_context = {
         let inner = Expr {
-            span: Span { start: 24, end: 48 },
             line_number: 3,
             col_number: 1,
             value: Cow::Borrowed(&content[24..48]),
