@@ -153,9 +153,4 @@ jobs:
       - uses: actions-rs/cargo@v1
         with:
           command: run
-          args: --example source_ref_hint_inline --release
-
-      - uses: actions-rs/cargo@v1
-        with:
-          command: run
           args: --example long_expr_context --release

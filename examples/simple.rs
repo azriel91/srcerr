@@ -1,156 +1,175 @@
-use std::{borrow::Cow, io, ops::RangeInclusive, path::Path};
+use std::{
+    borrow::Cow,
+    ops::{Range, RangeInclusive},
+    path::Path,
+};
 
 use srcerr::{
-    DefaultFormatter, ErrorCode, Expr, ExprHighlighted, Severity, SourceError, SourceHighlighted,
-    Suggestion,
+    codespan_reporting::{
+        diagnostic::{Label, Severity},
+        files::{Error, Files, SimpleFiles},
+        term,
+        term::termcolor::{ColorChoice, StandardStream},
+    },
+    fmt::Note,
+    ErrorCode, ErrorDetail, SourceError,
 };
 
 const SIMPLE_TOML: &str = include_str!("simple.toml");
 
-fn main() {
+fn main() -> Result<(), Error> {
     // Path to file containing error.
     let path = Path::new("examples/simple.toml");
     // Content from the file.
     let content = SIMPLE_TOML;
 
-    let value_out_of_range = value_out_of_range(&path, content);
-    let string_too_long = string_too_long(&path, content);
+    let mut files = SimpleFiles::new();
+    let path_display = path.display().to_string();
+    let file_id = files.add(path_display.as_str(), content);
+    let content = files
+        .source(file_id)
+        .expect("Expected to get file content.");
 
-    println!("{}", DefaultFormatter::fmt(&value_out_of_range));
-    println!("{}", DefaultFormatter::fmt(&string_too_long));
+    let value_out_of_range = value_out_of_range(file_id);
+    let value_out_of_range = value_out_of_range.as_diagnostic(&files);
+    let string_too_long = string_too_long(file_id, content);
+    let string_too_long = string_too_long.as_diagnostic(&files);
+
+    let writer = StandardStream::stderr(ColorChoice::Always);
+    let config = term::Config::default();
+    term::emit(&mut writer.lock(), &config, &files, &value_out_of_range)?;
+    term::emit(&mut writer.lock(), &config, &files, &string_too_long)?;
+
+    Ok(())
 }
 
-fn value_out_of_range<'path, 'source>(
-    path: &'path Path,
-    content: &'source str,
-) -> SourceError<'path, 'source, SimpleErrorCode<'source>> {
-    let range = 1..=3;
-    let error_code = SimpleErrorCode::ValueOutOfRange {
+fn value_out_of_range<'f>(
+    file_id: usize,
+) -> SourceError<'f, SimpleErrorCode, SimpleErrorDetail, SimpleFiles<&'f str, &'f str>> {
+    let error_code = SimpleErrorCode::ValueOutOfRange;
+    let error_detail = SimpleErrorDetail::ValueOutOfRange {
+        file_id,
         value: -1,
-        range: range.clone(),
+        value_byte_indices: 21..23,
+        range: 1..=3,
     };
-    let expr = {
-        let inner = Expr {
-            line_number: 2,
-            col_number: 13,
-            value: Cow::Borrowed(&content[21..23]),
-        };
-        ExprHighlighted { inner, hint: None }
-    };
-    let expr_context = {
-        let inner = Expr {
-            line_number: 2,
-            col_number: 1,
-            value: Cow::Borrowed(&content[9..23]),
-        };
-        ExprHighlighted { inner, hint: None }
-    };
-    let invalid_source = SourceHighlighted {
-        path: Some(Cow::Borrowed(path)),
-        expr_context,
-        expr: Some(expr),
-    };
-    let valid_exprs = range
-        .map(|n| n.to_string())
-        .map(Cow::Owned)
-        .collect::<Vec<_>>();
-    let suggestion_0 = Suggestion::ValidExprs(valid_exprs);
-    let suggestions = vec![suggestion_0];
-    let severity = Severity::Deny;
+    let severity = Severity::Error;
 
-    SourceError {
-        error_code,
-        invalid_source,
-        suggestions,
-        severity,
-    }
+    SourceError::new(error_code, error_detail, severity)
 }
 
-fn string_too_long<'path, 'source>(
-    path: &'path Path,
-    content: &'source str,
-) -> SourceError<'path, 'source, SimpleErrorCode<'source>> {
-    let error_code = SimpleErrorCode::StringTooLong {
-        value: &content[40..47],
+fn string_too_long<'f>(
+    file_id: usize,
+    content: &str,
+) -> SourceError<'f, SimpleErrorCode, SimpleErrorDetail, SimpleFiles<&'f str, &'f str>> {
+    let error_code = SimpleErrorCode::StringTooLong;
+    let error_detail = SimpleErrorDetail::StringTooLong {
+        file_id,
+        value: content[40..47].to_string(),
+        value_byte_indices: 39..48,
         limit: 5,
     };
-    let expr = {
-        let inner = Expr {
-            line_number: 3,
-            col_number: 16,
-            value: Cow::Borrowed(&content[39..48]),
-        };
-        ExprHighlighted { inner, hint: None }
-    };
-    let expr_context = {
-        let inner = Expr {
-            line_number: 3,
-            col_number: 1,
-            value: Cow::Borrowed(&content[24..48]),
-        };
-        ExprHighlighted { inner, hint: None }
-    };
-    let invalid_source = SourceHighlighted {
-        path: Some(Cow::Borrowed(path)),
-        expr_context,
-        expr: Some(expr),
-    };
-    let suggestions = vec![];
-    let severity = Severity::Deny;
+    let severity = Severity::Error;
 
-    SourceError {
-        error_code,
-        invalid_source,
-        suggestions,
-        severity,
-    }
+    SourceError::new(error_code, error_detail, severity)
 }
 
 /// Error codes for simple example.
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub enum SimpleErrorCode {
+    /// Error when a value is out of range.
+    ValueOutOfRange,
+    /// Error when a string is too long.
+    StringTooLong,
+}
+
+impl ErrorCode for SimpleErrorCode {
+    const ERROR_CODE_MAX: usize = 2;
+    const PREFIX: &'static str = "E";
+
+    fn code(self) -> usize {
+        match self {
+            Self::ValueOutOfRange => 1,
+            Self::StringTooLong => 2,
+        }
+    }
+
+    fn description(self) -> &'static str {
+        match self {
+            Self::ValueOutOfRange => "Value out of range.",
+            Self::StringTooLong => "String provided is too long.",
+        }
+    }
+}
+
+/// Error detail for simple example.
 #[derive(Debug)]
-pub enum SimpleErrorCode<'source> {
+pub enum SimpleErrorDetail {
     /// Error when a value is out of range.
     ValueOutOfRange {
+        /// ID of the file containing the invalid value.
+        file_id: usize,
         /// The value.
         value: i32,
+        /// Byte begin and end indices where the value is defined.
+        value_byte_indices: Range<usize>,
         /// Range that the value must be within.
         range: RangeInclusive<u32>,
     },
     /// Error when a string is too long.
     StringTooLong {
+        /// ID of the file containing the invalid value.
+        file_id: usize,
         /// The value that is too long.
-        value: &'source str,
+        value: String,
+        /// Byte begin and end indices where the value is defined.
+        value_byte_indices: Range<usize>,
         /// Maximum length allowed for the string.
         limit: usize,
     },
 }
 
-impl<'source> ErrorCode for SimpleErrorCode<'source> {
-    const ERROR_CODE_MAX: usize = 2;
-    const PREFIX: &'static str = "E";
+impl<'files> ErrorDetail<'files> for SimpleErrorDetail {
+    type Files = SimpleFiles<&'files str, &'files str>;
 
-    fn code(&self) -> usize {
+    fn labels(&self) -> Vec<Label<usize>> {
         match self {
-            Self::ValueOutOfRange { .. } => 1,
-            Self::StringTooLong { .. } => 2,
+            Self::ValueOutOfRange {
+                file_id,
+                value_byte_indices,
+                range,
+                ..
+            } => {
+                vec![
+                    Label::primary(*file_id, value_byte_indices.clone()).with_message(format!(
+                        "not within the range: `{}..={}`",
+                        range.start(),
+                        range.end()
+                    )),
+                ]
+            }
+            Self::StringTooLong {
+                file_id,
+                value_byte_indices,
+                limit,
+                ..
+            } => {
+                vec![
+                    Label::primary(*file_id, value_byte_indices.clone())
+                        .with_message(format!("exceeds the {} character limit.", limit)),
+                ]
+            }
         }
     }
 
-    fn fmt_description<W>(&self, buffer: &mut W) -> Result<(), io::Error>
-    where
-        W: io::Write,
-    {
+    fn notes(&self, _files: &Self::Files) -> Vec<String> {
         match self {
-            Self::ValueOutOfRange { value, range } => write!(
-                buffer,
-                "`{}` is out of the range: `{}..{}`.",
-                value,
-                range.start(),
-                range.end()
-            ),
-            Self::StringTooLong { value, limit } => {
-                write!(buffer, "`{}` exceeds the {} character limit.", value, limit)
+            Self::ValueOutOfRange { range, .. } => {
+                let valid_exprs = range.clone().map(|n| Cow::Owned(n.to_string()));
+                let suggestion = Note::valid_exprs(valid_exprs).expect("Failed to format note.");
+                vec![suggestion]
             }
+            Self::StringTooLong { .. } => vec![],
         }
     }
 }
