@@ -1,5 +1,14 @@
 # Changelog
 
+## 0.2.0 (2021-02-03)
+
+### Changed
+
+* Removed all formatting logic, and back onto `codespan-reporting`. ([#11], [#12])
+
+[#11]: https://github.com/azriel91/srcerr/issues/11
+[#12]: https://github.com/azriel91/srcerr/pull/12
+
 ## 0.1.0 (2020-11-20)
 
 ### Added
