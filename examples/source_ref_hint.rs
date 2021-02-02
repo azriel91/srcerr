@@ -1,120 +1,117 @@
-use std::{borrow::Cow, io, path::Path};
+use std::{ops::Range, path::Path};
 
 use srcerr::{
-    DefaultFormatter, ErrorCode, Expr, ExprHighlighted, Severity, SourceError, SourceHighlighted,
-    SourceRefHint, Span, Suggestion,
+    codespan_reporting::{
+        diagnostic::{Label, Severity},
+        files::{Error, Files, SimpleFiles},
+        term,
+        term::termcolor::{ColorChoice, StandardStream},
+    },
+    ErrorCode, ErrorDetail, SourceError,
 };
 
 const SOURCE_REF_HINT_YAML: &str = include_str!("source_ref_hint.yaml");
 
-fn main() {
+fn main() -> Result<(), Error> {
     // Path to file containing error.
     let path = Path::new("examples/source_ref_hint.yaml");
     // Content from the file.
     let content = SOURCE_REF_HINT_YAML;
 
-    let value_out_of_range = value_out_of_range(&path, content);
+    let mut files = SimpleFiles::new();
+    let path_display = path.display().to_string();
+    let file_id = files.add(path_display.as_str(), content);
+    let content = files
+        .source(file_id)
+        .expect("Expected to get file content.");
 
-    println!("{}", DefaultFormatter::fmt(&value_out_of_range));
+    let invalid_value = invalid_value(file_id, content);
+
+    let writer = StandardStream::stderr(ColorChoice::Always);
+    let config = term::Config::default();
+    term::emit(
+        &mut writer.lock(),
+        &config,
+        &files,
+        &invalid_value.as_diagnostic(&files),
+    )?;
+
+    Ok(())
 }
 
-fn value_out_of_range<'path, 'source>(
-    path: &'path Path,
-    content: &'source str,
-) -> SourceError<'path, 'source, SourceRefHintErrorCode<'source>> {
-    let error_code = SourceRefHintErrorCode::InvalidValue {
-        value: &content[45..48],
+fn invalid_value<'f>(
+    file_id: usize,
+    content: &str,
+) -> SourceError<'f, SourceRefHintErrorCode, SourceRefHintErrorDetail, SimpleFiles<&'f str, &'f str>>
+{
+    let error_code = SourceRefHintErrorCode;
+    let error_detail = SourceRefHintErrorDetail {
+        file_id,
+        value: content[45..48].to_string(),
+        value_byte_indices: 44..49,
+        valid_values: vec![content[20..23].to_string(), content[30..33].to_string()],
+        valid_values_byte_indices: 4..34,
     };
-    let expr = {
-        let inner = Expr {
-            span: Span { start: 44, end: 49 },
-            line_number: 6,
-            col_number: 9,
-            value: Cow::Borrowed(&content[44..49]),
-        };
-        ExprHighlighted { inner, hint: None }
-    };
-    let expr_context = {
-        let inner = Expr {
-            span: Span { start: 36, end: 49 },
-            line_number: 6,
-            col_number: 1,
-            value: Cow::Borrowed(&content[36..49]),
-        };
-        ExprHighlighted { inner, hint: None }
-    };
-    let invalid_source = SourceHighlighted {
-        path: Some(Cow::Borrowed(path)),
-        expr_context,
-        expr: Some(expr),
-    };
-    let suggestion_0 = {
-        let valid_exprs = [&content[20..23], &content[30..33]]
-            .iter()
-            .map(|s| Cow::Borrowed(*s))
-            .collect::<Vec<_>>();
-        Suggestion::ValidExprs(valid_exprs)
-    };
-    let suggestion_1 = {
-        let expr_context = {
-            let inner = Expr {
-                span: Span { start: 4, end: 34 },
-                line_number: 2,
-                col_number: 1,
-                value: Cow::Borrowed(&content[4..34]),
-            };
-            ExprHighlighted { inner, hint: None }
-        };
-        let source_ref = SourceHighlighted {
-            path: Some(Cow::Borrowed(path)),
-            expr_context,
-            expr: None,
-        };
-        Suggestion::SourceRefHint(Box::new(SourceRefHint {
-            source_ref,
-            description: String::from("`chosen` value must come from one of `available` values"),
-        }))
-    };
-    let suggestion_2 = Suggestion::Hint("first defined here");
-    let suggestions = vec![suggestion_0, suggestion_1, suggestion_2];
-    let severity = Severity::Deny;
+    let severity = Severity::Error;
 
-    SourceError {
-        error_code,
-        invalid_source,
-        suggestions,
-        severity,
-    }
+    SourceError::new(error_code, error_detail, severity)
 }
 
 /// Error codes for source_ref_hint example.
-#[derive(Debug)]
-pub enum SourceRefHintErrorCode<'source> {
-    /// Error when a value is invalid.
-    InvalidValue {
-        /// The invalid value.
-        value: &'source str,
-    },
-}
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub struct SourceRefHintErrorCode;
 
-impl<'source> ErrorCode for SourceRefHintErrorCode<'source> {
-    const ERROR_CODE_MAX: usize = 1;
+impl ErrorCode for SourceRefHintErrorCode {
+    const ERROR_CODE_MAX: usize = 2;
     const PREFIX: &'static str = "E";
 
-    fn code(&self) -> usize {
-        match self {
-            Self::InvalidValue { .. } => 1,
-        }
+    fn code(self) -> usize {
+        1
     }
 
-    fn fmt_description<W>(&self, buffer: &mut W) -> Result<(), io::Error>
-    where
-        W: io::Write,
-    {
-        match self {
-            Self::InvalidValue { value } => {
-                write!(buffer, "`chosen` value `{}` is invalid.", value)
-            }
-        }
+    fn description(self) -> &'static str {
+        "`chosen` value is invalid."
+    }
+}
+
+/// Error detail for source_ref_hint example.
+#[derive(Debug)]
+pub struct SourceRefHintErrorDetail {
+    /// ID of the file containing the invalid value.
+    pub file_id: usize,
+    /// The value that is too long.
+    pub value: String,
+    /// Byte begin and end indices where the value is defined.
+    pub value_byte_indices: Range<usize>,
+    /// Valid values available.
+    pub valid_values: Vec<String>,
+    /// Where the valid values are defined.
+    pub valid_values_byte_indices: Range<usize>,
+}
+
+impl<'files> ErrorDetail<'files> for SourceRefHintErrorDetail {
+    type Files = SimpleFiles<&'files str, &'files str>;
+
+    fn labels(&self) -> Vec<Label<usize>> {
+        let Self {
+            file_id,
+            value: _,
+            value_byte_indices,
+            valid_values: _,
+            valid_values_byte_indices,
+        } = self;
+
+        vec![
+            Label::primary(*file_id, value_byte_indices.clone())
+                .with_message("invalid value specified"),
+            Label::secondary(*file_id, valid_values_byte_indices.clone())
+                .with_message("defined here"),
+        ]
+    }
+
+    fn notes(&self, _files: &Self::Files) -> Vec<String> {
+        vec![String::from(
+            "`chosen` value must come from one of `available` values",
+        )]
     }
 }

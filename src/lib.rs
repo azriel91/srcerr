@@ -2,20 +2,11 @@
 
 //! User friendly errors from source data.
 
-pub use crate::{
-    formatter::{PlainTextFormatter, SourceErrorFormatter, Styler},
-    model::{
-        ErrorCode, Expr, ExprHighlighted, HighlightLevel, Severity, SourceError, SourceHighlighted,
-        SourceRefHint, Span, Suggestion,
-    },
-};
+pub use crate::model::{ErrorCode, ErrorDetail, SourceError};
 
-#[cfg(feature = "ansi_color")]
-pub use crate::formatter::AnsiColorFormatter;
-#[cfg(feature = "ansi_color")]
-pub use crate::formatter::AnsiColorFormatter as DefaultFormatter;
-#[cfg(not(feature = "ansi_color"))]
-pub use crate::formatter::PlainTextFormatter as DefaultFormatter;
+// Re-export `codespan_reporting` so consumers don't have to depend on the crate
+// directly.
+pub use codespan_reporting;
 
-pub mod formatter;
+pub mod fmt;
 pub mod model;
