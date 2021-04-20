@@ -10,6 +10,9 @@ readme = "README.md"
 keywords = ["error", "format"]
 license = "MIT OR Apache-2.0"
 
+[package.metadata.docs.rs]
+features = ["codespan"]
+
 [dependencies]
 codespan = { version = "0.11.1", optional = true }
 codespan-reporting = "0.11.1"
