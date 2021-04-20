@@ -154,3 +154,8 @@ jobs:
         with:
           command: run
           args: --example long_expr_context --release
+
+      - uses: actions-rs/cargo@v1
+        with:
+          command: run
+          args: --example codespan --release --features codespan

@@ -1,6 +1,6 @@
 [package]
 name = "srcerr"
-version = "0.2.0"
+version = "0.3.0"
 authors = ["Azriel Hoh <azriel91@gmail.com>"]
 edition = "2018"
 description = "User friendly errors from source data."
@@ -10,8 +10,16 @@ readme = "README.md"
 keywords = ["error", "format"]
 license = "MIT OR Apache-2.0"
 
+[package.metadata.docs.rs]
+features = ["codespan"]
+
 [dependencies]
-codespan-reporting = "0.11.0"
+codespan = { version = "0.11.1", optional = true }
+codespan-reporting = "0.11.1"
 
 [features]
 serialization = ["codespan-reporting/serialization"]
+
+[[example]]
+name = "codespan"
+required-features = ["codespan"]

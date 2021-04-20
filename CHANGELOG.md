@@ -1,13 +1,30 @@
 # Changelog
 
+## 0.3.0 (2021-04-20)
+
+### Added
+
+* `"codespan"` feature to re-export [`codespan`] \(disabled by default\). ([#15])
+
+### Changed
+
+* Update [`codespan-reporting`] version from `0.11.0` to `0.11.1`. ([#15])
+* Update documentation in `README.md` and `lib.rs`. ([#15])
+
+[`codespan`]: https://docs.rs/codespan
+
+[#15]: https://github.com/azriel91/srcerr/pull/15
+
 ## 0.2.0 (2021-02-03)
 
 ### Changed
 
-* Removed all formatting logic, and back onto `codespan-reporting`. ([#11], [#12])
+* Removed all formatting logic, and back onto [`codespan-reporting`]. ([#11], [#12])
 
 [#11]: https://github.com/azriel91/srcerr/issues/11
 [#12]: https://github.com/azriel91/srcerr/pull/12
+
+[`codespan-reporting`]: https://docs.rs/codespan-reporting
 
 ## 0.1.0 (2020-11-20)
 

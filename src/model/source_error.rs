@@ -17,7 +17,7 @@ use crate::{
 /// * `E`: [`ErrorCode`][crate::ErrorCode] type.
 /// * `F`: [`Files`] referenced by this error.
 ///
-/// [`Files`][codespan_reporting::files::Files]
+/// [`Files`]: codespan_reporting::files::Files
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub struct SourceError<'files, Ec, Ed, Fs> {
     /// Code within the [`ErrorCode`] this error corresponds to.
