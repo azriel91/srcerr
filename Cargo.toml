@@ -11,7 +11,10 @@ keywords = ["error", "format"]
 license = "MIT OR Apache-2.0"
 
 [dependencies]
-codespan-reporting = "0.11.0"
+codespan-reporting = "0.11.1"
+
+[dev-dependencies]
+codespan = "0.11.1"
 
 [features]
 serialization = ["codespan-reporting/serialization"]
