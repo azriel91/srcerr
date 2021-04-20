@@ -5,7 +5,7 @@ use codespan_reporting::{diagnostic::Label, files::Files};
 /// While [`ErrorCode`] represents a class of error, `ErrorDetail` captures the
 /// information for this specific instance of the error.
 ///
-/// [`ErrorCode`][crate::model::ErrorCode]
+/// [`ErrorCode`]: crate::ErrorCode
 pub trait ErrorDetail<'files> {
     /// Type of the collection of data that the error arises from.
     ///

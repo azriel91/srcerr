@@ -10,7 +10,7 @@
 //!   variant contains information specific to an instance of the error.
 //! * [`Severity`]: The severity to report the error.
 //!
-//! [`Severity`]: crate::codespan_reporting::Severity
+//! [`Severity`]: codespan_reporting::diagnostic::Severity
 //!
 //! # Examples
 //!

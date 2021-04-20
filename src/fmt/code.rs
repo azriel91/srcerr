@@ -28,7 +28,7 @@ where
 
     /// Writes the error code into the buffer.
     ///
-    /// See [`Self::error_code`] for a version that allocates a `String`.
+    /// See [`Self::string`] for a version that allocates a `String`.
     ///
     /// # Parameters
     ///
