@@ -1,7 +1,7 @@
 use std::{borrow::Cow, ops::RangeInclusive, path::Path};
 
-use codespan::{FileId, Files, Span};
 use srcerr::{
+    codespan::{FileId, Files, Span},
     codespan_reporting::{
         diagnostic::{Label, Severity},
         files::Error,

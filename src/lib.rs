@@ -20,6 +20,10 @@
 
 pub use crate::model::{ErrorCode, ErrorDetail, SourceError};
 
+// Re-export `codespan` so consumers don't have to depend on the crate directly.
+#[cfg(feature = "codespan")]
+pub use codespan;
+
 // Re-export `codespan_reporting` so consumers don't have to depend on the crate
 // directly.
 pub use codespan_reporting;

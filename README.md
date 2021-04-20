@@ -12,6 +12,16 @@ This library provies a [`SourceError`] struct that holds:
 * [`ErrorDetail`]: Enum with matching variants to `ErrorCode`, but each variant contains information specific to an instance of the error.
 * [`Severity`]: The severity to report the error.
 
+This library backs onto [`codespan-reporting`] to render diagnostic errors.
+
+The `"codespan"` feature can also be used to expose [`codespan`] types:
+
+```toml
+srcerr = { version = "0.3.0", features = ["codespan"] }
+```
+
+[`codespan-reporting`]: https://docs.rs/codespan-reporting
+[`codespan`]: https://docs.rs/codespan
 [`ErrorCode`]: https://docs.rs/srcerr/latest/srcerr/trait.ErrorCode.html
 [`ErrorDetail`]: https://docs.rs/srcerr/latest/srcerr/trait.ErrorDetail.html
 [`Severity`]: https://docs.rs/codespan-reporting/0.11.1/codespan_reporting/diagnostic/enum.Severity.html
@@ -193,6 +203,7 @@ cargo run --example simple
 cargo run --example source_ref_hint
 cargo run --example long_expr_context
 cargo run --example html > /tmp/index.html
+cargo run --example codespan --features codespan
 ```
 
 ## License
