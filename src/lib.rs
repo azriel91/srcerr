@@ -1,6 +1,22 @@
 #![deny(missing_docs, missing_debug_implementations)]
 
-//! User friendly errors from source data.
+//! Types to track error codes and details.
+//!
+//! This library provies a [`SourceError`] struct that holds:
+//!
+//! * [`ErrorCode`]: Enum whose variants indicate error code, simple
+//!   description.
+//! * [`ErrorDetail`]: Enum with matching variants to `ErrorCode`, but each
+//!   variant contains information specific to an instance of the error.
+//! * [`Severity`]: The severity to report the error.
+//!
+//! [`Severity`]: crate::codespan_reporting::Severity
+//!
+//! # Examples
+//!
+//! Sample usage can be seen in the repository [examples].
+//!
+//! [examples]: https://github.com/azriel91/srcerr/tree/main/examples
 
 pub use crate::model::{ErrorCode, ErrorDetail, SourceError};
 
