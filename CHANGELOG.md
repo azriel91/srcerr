@@ -1,5 +1,13 @@
 # Changelog
 
+## 0.4.0 (2021-04-25)
+
+### Added
+
+* `impl std::error::Error for SourceError` when `ED: std::error::Error`. ([#16])
+
+[#16]: https://github.com/azriel91/srcerr/pull/16
+
 ## 0.3.0 (2021-04-20)
 
 ### Added
