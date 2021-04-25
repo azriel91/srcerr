@@ -17,7 +17,7 @@ This library backs onto [`codespan-reporting`] to render diagnostic errors.
 The `"codespan"` feature can also be used to expose [`codespan`] types:
 
 ```toml
-srcerr = { version = "0.3.0", features = ["codespan"] }
+srcerr = { version = "0.4.0", features = ["codespan"] }
 ```
 
 [`codespan-reporting`]: https://docs.rs/codespan-reporting
