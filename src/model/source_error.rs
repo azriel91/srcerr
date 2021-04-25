@@ -1,4 +1,4 @@
-use std::marker::PhantomData;
+use std::{fmt, marker::PhantomData};
 
 use codespan_reporting::{
     diagnostic::{Diagnostic, Severity},
@@ -63,9 +63,31 @@ where
     }
 }
 
+impl<'files, Ec, Ed, Fs> std::error::Error for SourceError<'files, Ec, Ed, Fs>
+where
+    Ec: ErrorCode + fmt::Debug,
+    Ed: ErrorDetail<'files, Files = Fs> + std::error::Error,
+    Fs: Files<'files> + fmt::Debug,
+{
+    fn source(&self) -> Option<&(dyn std::error::Error + 'static)> {
+        self.detail.source()
+    }
+}
+
+impl<'files, Ec, Ed, Fs> fmt::Display for SourceError<'files, Ec, Ed, Fs>
+where
+    Ec: ErrorCode,
+    Ed: ErrorDetail<'files, Files = Fs> + fmt::Display,
+    Fs: Files<'files>,
+{
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        fmt::Display::fmt(&self.detail, f)
+    }
+}
+
 #[cfg(test)]
 mod tests {
-    use std::ops::Range;
+    use std::{fmt, ops::Range};
 
     use codespan_reporting::{
         diagnostic::{Diagnostic, Label, Severity},
@@ -148,6 +170,18 @@ mod tests {
 
         fn notes(&self, _files: &Self::Files) -> Vec<String> {
             vec![String::from("note_message")]
+        }
+    }
+
+    impl std::error::Error for TestErrorDetail {
+        fn source(&self) -> Option<&(dyn std::error::Error + 'static)> {
+            None
+        }
+    }
+
+    impl fmt::Display for TestErrorDetail {
+        fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+            write!(f, "Value `{}` is too long.", self.value)
         }
     }
 }
