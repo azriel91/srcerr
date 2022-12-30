@@ -39,9 +39,9 @@ impl Note {
         write!(buffer, "expected value to be one of: ")?;
 
         if let Some(first_valid_expr) = valid_exprs.next() {
-            write!(buffer, "`{}`", first_valid_expr)?;
+            write!(buffer, "`{first_valid_expr}`")?;
         }
-        valid_exprs.try_for_each(|valid_expr| write!(buffer, ", `{}`", valid_expr))?;
+        valid_exprs.try_for_each(|valid_expr| write!(buffer, ", `{valid_expr}`"))?;
 
         Ok(())
     }
